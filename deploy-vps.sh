@@ -20,6 +20,13 @@
 #     (launchd doesn't exist on Linux), so it can't be reused as-is on this
 #     Ubuntu VPS. This script runs LiteLLM as a second Docker container instead,
 #     alongside nexora-hub, both with restart: unless-stopped.
+#   - This script now clones/syncs from https://github.com/Qlf296/nexora.git
+#     (step 1.5) before building, instead of just assuming ~/Halim-AI already
+#     has the latest code. That was the actual cause of the Utrecht team-
+#     availability schedule being missing on the deployed dashboard: nothing
+#     ever pulled new commits onto the VPS. Safe to re-run any time — it
+#     clones on first run, then fetch + hard-reset to origin/main on every
+#     later run. .env is untracked and is never touched by the sync.
 set -euo pipefail
 
 ### 1) Docker Engine + Compose plugin ###
@@ -31,7 +38,27 @@ if ! command -v docker &>/dev/null; then
 fi
 sudo systemctl enable --now docker
 
-cd ~/Halim-AI
+### 1.5) Sync code from git — keeps the VPS up to date with origin/main ###
+#     (Qlf296/nexora on GitHub). This is what was missing before: the script
+#     used to just `cd` into an existing checkout and never pulled new code,
+#     so VPS re-runs kept redeploying stale files even after local commits.
+NEXORA_REPO="https://github.com/Qlf296/nexora.git"
+NEXORA_DIR="$HOME/Halim-AI"
+
+if [ ! -d "$NEXORA_DIR/.git" ]; then
+  echo ">>> Cloning $NEXORA_REPO into $NEXORA_DIR ..."
+  git clone "$NEXORA_REPO" "$NEXORA_DIR"
+else
+  echo ">>> Syncing $NEXORA_DIR with origin/main ..."
+  cd "$NEXORA_DIR"
+  git fetch origin
+  git reset --hard origin/main
+  echo ">>> NOTE: 'git reset --hard' overwrote any local edits to tracked files"
+  echo "    (e.g. manual litellm-config.yaml tweaks made directly on the VPS)."
+  echo "    .env is untracked by git, so it is never touched by this sync."
+fi
+
+cd "$NEXORA_DIR"
 
 ### 2) Secrets — .env next to docker-compose.yml, never committed to git ###
 if [ ! -f .env ]; then
