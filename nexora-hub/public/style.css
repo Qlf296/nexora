@@ -269,3 +269,53 @@ html, body {
   border-top: none;
   padding-top: 0;
 }
+
+/* ── Outils Métier widget ── */
+.tools-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tool-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  text-decoration: none;
+  color: var(--text);
+  transition: background 0.18s, border-color 0.18s;
+}
+.tool-link:hover {
+  background: rgba(255,255,255,0.07);
+  border-color: var(--accent);
+}
+.tool-icon {
+  font-size: 22px;
+  flex-shrink: 0;
+}
+.tool-info {
+  flex: 1;
+  min-width: 0;
+}
+.tool-info strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tool-info small {
+  display: block;
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+.tool-arrow {
+  font-size: 14px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
