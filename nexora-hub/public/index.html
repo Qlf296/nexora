@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>NEXORA Hub — Control Center</title>
+
+<!-- PWA (manifest + icons wired up in a later pass; links are safe no-ops until then) -->
+<link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#0b0f17" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="NEXORA" />
+<link rel="apple-touch-icon" href="/icons/icon-192.png" />
+
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- ============== LEFT: CHAT (≈38%) ============== -->
+    <section class="chat-pane">
+      <header class="chat-header">
+        <div class="brand">
+          <span class="brand-dot"></span>
+          <span class="brand-name">NEXORA</span>
+        </div>
+        <div class="router-pill" id="routerPill" title="Modèle actif">
+          <span id="routerPillDot" class="dot dot-free"></span>
+          <span id="routerPillText">—</span>
+        </div>
+      </header>
+
+      <div class="chat-messages" id="chatMessages">
+        <div class="msg msg-assistant">
+          <div class="msg-bubble">
+            Bonjour Halim. Je suis NEXORA. Pose ta question — je route automatiquement
+            vers le niveau gratuit (Groq / Gemini Flash / Ollama) sauf si la tâche est
+            complexe, où je bascule sur Claude.
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-attachments" id="chatAttachments" hidden></div>
+
+      <form class="chat-input-row" id="chatForm">
+        <input type="file" id="fileInput" multiple hidden />
+        <button type="button" class="icon-btn" id="attachBtn" title="Joindre un fichier">📎</button>
+        <textarea id="chatInput" placeholder="Écris à NEXORA…" rows="1"></textarea>
+        <select id="tierSelect" title="Forcer un niveau">
+          <option value="auto">Auto</option>
+          <option value="free">Gratuit</option>
+          <option value="pro">Pro (Claude)</option>
+        </select>
+        <button type="submit" class="send-btn" id="sendBtn">Envoyer</button>
+      </form>
+    </section>
+
+    <!-- ============== RIGHT: DASHBOARD (≈62%) ============== -->
+    <section class="dashboard-pane">
+      <header class="dashboard-header">
+        <h1>Control Center</h1>
+        <button class="refresh-all" id="refreshAll">⟳ Rafraîchir tout</button>
+      </header>
+
+      <div class="widget-grid">
+
+        <!-- AI Router Status -->
+        <article class="widget widget-router" id="widgetRouter">
+          <div class="widget-head">
+            <h2>AI Router Status</h2>
+            <span class="badge badge-live">live</span>
+          </div>
+          <div class="widget-body" id="routerBody">
+            <div class="router-stat"><span class="label">Modèle actif</span><span class="value" id="rsModel">—</span></div>
+            <div class="router-stat"><span class="label">Niveau</span><span class="value" id="rsTier">—</span></div>
+            <div class="router-stat"><span class="label">Requêtes gratuites</span><span class="value" id="rsFree">0</span></div>
+            <div class="router-stat"><span class="label">Requêtes Pro</span><span class="value" id="rsPro">0</span></div>
+            <div class="router-stat"><span class="label">Coût estimé</span><span class="value" id="rsCost">$0.00</span></div>
+            <div class="router-stat router-stat-error" id="rsErrorRow" hidden><span class="label">Erreur</span><span class="value" id="rsError"></span></div>
+          </div>
+        </article>
+
+        <!-- Portfolio / Investments -->
+        <article class="widget" id="widgetFinance">
+          <div class="widget-head">
+            <h2>Portefeuille &amp; Investissements</h2>
+            <span class="badge" id="financeBadge">—</span>
+          </div>
+          <div class="widget-body" id="financeBody">Chargement…</div>
+        </article>
+
+        <!-- Social networks -->
+        <article class="widget" id="widgetSocial">
+          <div class="widget-head">
+            <h2>Réseaux Sociaux</h2>
+            <span class="badge" id="socialBadge">—</span>
+          </div>
+          <div class="widget-body" id="socialBody">Chargement…</div>
+        </article>
+
+        <!-- Team Availability — Utrecht -->
+        <article class="widget widget-team" id="widgetTeam">
+          <div class="widget-head">
+            <h2>Équipe Utrecht — Disponibilité</h2>
+            <span class="badge" id="teamBadge">—</span>
+          </div>
+          <div class="widget-body" id="teamBody">Chargement…</div>
+        </article>
+
+        <!-- GitHub -->
+        <article class="widget" id="widgetGithub">
+          <div class="widget-head">
+            <h2>GitHub</h2>
+            <span class="badge" id="githubBadge">—</span>
+          </div>
+          <div class="widget-body" id="githubBody">Chargement…</div>
+        </article>
+
+        <!-- Reddit -->
+        <article class="widget" id="widgetReddit">
+          <div class="widget-head">
+            <h2>Reddit</h2>
+            <span class="badge" id="redditBadge">—</span>
+          </div>
+          <div class="widget-body" id="redditBody">Chargement…</div>
+        </article>
+
+      </div>
+    </section>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

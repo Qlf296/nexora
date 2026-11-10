@@ -1,0 +1,15 @@
+{
+  "name": "nexora-hub",
+  "version": "0.1.0",
+  "description": "NEXORA Hub — single-page chat + control-center dashboard, fronting the LiteLLM free/pro router.",
+  "type": "module",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {}
+}

@@ -1,0 +1,91 @@
+{
+  "generatedAt": "2026-11-10T14:09:40Z",
+  "source": {
+    "sheetUrl": "https://docs.google.com/spreadsheets/d/1ikUvLkxX45taYpzC_Ams4BRWNjCelzfu6w9O742QT5Y",
+    "sheetId": "1ikUvLkxX45taYpzC_Ams4BRWNjCelzfu6w9O742QT5Y",
+    "authority": "Google Apps Script v6.8 (\"TEAM AVAILABILITY MANAGEMENT SYSTEM\") remains the sole authoritative automation engine inside Google Sheets. This file is a read-only sync snapshot, not the source of truth.",
+    "tabs": ["Sheet1", "vaction plan", "Copy of vaction plan"]
+  },
+  "week": {
+    "range": "16.11 — 22.11",
+    "startDate": "2026-11-16",
+    "endDate": "2026-11-22",
+    "lockDeadline": "Saturday 16:00"
+  },
+  "managers": [
+    { "name": "Belkacem Halim", "role": "TL", "email": "halimbelkacem27@gmail.com" },
+    { "name": "Storozhuk Natalia", "role": "STL", "email": "Storozhuk.natasha0333@gmail.com" }
+  ],
+  "employees": [
+    { "id": 795, "name": "Belkacem Halim", "role": "TL", "email": "halimbelkacem27@gmail.com", "availabilityPercent": 100, "unavailability": {} },
+    { "id": 248, "name": "Storozhuk Natalia", "role": "STL", "email": "Storozhuk.natasha0333@gmail.com", "availabilityPercent": 100, "unavailability": {} },
+    { "id": 141, "name": "Liutkin Oleksandr", "role": null, "email": "liutkin0603@gmail.com", "availabilityPercent": 100, "unavailability": {} },
+    { "id": 360, "name": "Hatemi MJ Hazem", "role": null, "email": "hazimmj5@gmail.com", "availabilityPercent": 100, "unavailability": {} },
+    { "id": 559, "name": "Pidperyhora, Nataliia", "role": null, "email": "nataliiasymchych@gmail.com", "availabilityPercent": 100, "unavailability": {} },
+    { "id": 734, "name": "Fastova Tetiana", "role": null, "email": "tatanafastova7@gmail.com", "availabilityPercent": 86, "unavailability": { "Wednesday": "off" } },
+    { "id": 812, "name": "Mosiienko, Ivan", "role": null, "email": "vanamosienko19@gmail.com", "availabilityPercent": 100, "unavailability": {} },
+    { "id": 890, "name": "Kadachynov, Serhii", "role": null, "email": "kadachigovs@gmail.com", "availabilityPercent": 100, "unavailability": {} },
+    { "id": 991, "name": "Alisawy Ali", "role": null, "email": "sksbbdjj@gmail.com", "availabilityPercent": 100, "unavailability": {} },
+    { "id": 946, "name": "Kozynets, Roman", "role": null, "email": "romakozynets@gmail.com", "availabilityPercent": 100, "unavailability": {} },
+    { "id": 139, "name": "kadachyhova Kateryna", "role": null, "email": "Kadachigovae@gmail.com", "availabilityPercent": 100, "unavailability": {} },
+    { "id": 793, "name": "Dolharova Аnastasiia", "role": null, "email": "nastya.baranova8@gmail.com", "availabilityPercent": 100, "unavailability": {} },
+    { "id": 428, "name": "Kosov Iryna", "role": null, "email": "kosova.irina1984@gmail.com", "availabilityPercent": 100, "unavailability": {} },
+    { "id": 827, "name": "Potera Maksym", "role": null, "email": "maksimpotera@gmail.com", "availabilityPercent": 100, "unavailability": {} },
+    { "id": 1006, "name": "Poliukhovych Stanislav", "role": null, "email": "kripys.fochan@gmail.com", "availabilityPercent": 100, "unavailability": {} },
+    { "id": 1007, "name": "Titova Natalia", "role": null, "email": "Nataliti013@gmail.com", "availabilityPercent": 100, "unavailability": {} },
+    { "id": 1053, "name": "Pienov Daniel", "role": null, "email": "Penovdaniel16@gmail.com", "availabilityPercent": 100, "unavailability": {} },
+    { "id": 1190, "name": "Kosenko Luidmyla", "role": null, "email": "kosenko.ivanna@gmail.com", "availabilityPercent": 100, "unavailability": {} },
+    { "id": 1243, "name": "Shivangi kumari shaw", "role": null, "email": "Shivangi31july@gmail.com", "availabilityPercent": 100, "unavailability": {} },
+    { "id": 1276, "name": "Soumita Das", "role": null, "email": "Tinasoumita@gmail.com", "availabilityPercent": 86, "unavailability": { "Wednesday": "13-18" } },
+    { "id": 1306, "name": "Sofia Fyruk", "role": null, "email": "furyksofiia@gmail.com", "availabilityPercent": 100, "unavailability": {} },
+    { "id": 1349, "name": "Jessie Lim", "role": null, "email": "jessielim520@gmail.com", "availabilityPercent": 100, "unavailability": {} },
+    { "id": 1378, "name": "Maneesh Kelly", "role": null, "email": "maneesh@iinet.net.au", "availabilityPercent": 100, "unavailability": {} },
+    { "id": 1459, "name": "Vadym Kuzmynskyi", "role": null, "email": "kuzminskii1978@gmail.com", "availabilityPercent": 100, "unavailability": {} },
+    { "id": 1467, "name": "Pavliuk Ivan", "role": null, "email": "pavliuk.ivan.045@gmail.com", "availabilityPercent": 100, "unavailability": {} },
+    { "id": 1490, "name": "Sajeda Rozba", "role": null, "email": "sajedarozba1@gmail.com", "availabilityPercent": 100, "unavailability": {} },
+    { "id": 1489, "name": "Shewit Mekonen Abreha", "role": null, "email": "shashitmoke@gmail.com", "availabilityPercent": 100, "unavailability": {} },
+    { "id": 1582, "name": "Drachuk Yuliia", "role": null, "email": "yulya.drachukyara@gmail.com", "availabilityPercent": 100, "unavailability": {} },
+    { "id": 1615, "name": "Iman EL Ouardi", "role": null, "email": "imanelouardi98@gmail.com", "availabilityPercent": 100, "unavailability": {} },
+    { "id": 1613, "name": "Ameen Alhaza's", "role": null, "email": "amen.nh2@gmail.com", "availabilityPercent": 100, "unavailability": {} },
+    { "id": 1625, "name": "Marchenko Andrii", "role": null, "email": "andreymrchenko@gmail.com", "availabilityPercent": 100, "unavailability": {} },
+    { "id": 1597, "name": "Aidan Young", "role": null, "email": "youngaidan55@gmail.com", "availabilityPercent": 100, "unavailability": {} },
+    { "id": 1643, "name": "Anna Denisovna Taienchuk", "role": null, "email": "Annataen@gmail.com", "availabilityPercent": 100, "unavailability": {} },
+    { "id": 1655, "name": "Sanjay Kumar", "role": null, "email": "Mandawra3265@gmail.com", "availabilityPercent": 57, "unavailability": { "Monday": "off", "Wednesday": "off", "Friday": "off" } },
+    { "id": 964, "name": "Levytskyi Yenheni", "role": null, "email": null, "availabilityPercent": null, "unavailability": {}, "notInWeeklySheet": true }
+  ],
+  "vacationPlan": {
+    "title": "THE VACTION PROPOSAL FOR SUMMER PERIODE",
+    "announcement": "Dear Team, the approved holiday windows for the upcoming periods are 20 July 2026 – 6 September 2026 and 26 January 2027 – 31 March 2027. Please coordinate your vacation requests with Natalia (STL) and Halim (TL). Requests must be submitted at least 1 month in advance.",
+    "approvedWindows": [
+      { "from": "2026-07-20", "to": "2026-09-06" },
+      { "from": "2027-01-26", "to": "2027-03-31" }
+    ],
+    "legend": {
+      "onVacation": "on vacation",
+      "done": "vaction done",
+      "confirmed": "vacation confiremed",
+      "pending": "vacation pending"
+    },
+    "requests": [
+      {
+        "id": 1243,
+        "name": "Shivangi kumari shaw",
+        "date": "12/12/2026-08/01/2027",
+        "status": "pending",
+        "note": "vacation pending"
+      }
+    ]
+  },
+  "automation": {
+    "engine": "Google Apps Script v6.8",
+    "managerEmails": ["halimbelkacem27@gmail.com", "Storozhuk.natasha0333@gmail.com"],
+    "autoTag": "[AUTO]",
+    "triggers": [
+      { "name": "resetSchedule", "when": "Monday 09:00", "description": "Updates week date range, clears Monday–Sunday + Percent columns, removes row protections, sends Monday emails to all employees." },
+      { "name": "sendSaturdayReminder", "when": "Saturday 10:00", "description": "Sends reminder emails to employees who have not yet filled their availability." },
+      { "name": "lockSchedule", "when": "Saturday 16:00", "description": "Calculates availability percentages, applies per-row protections, emails managers the final report." },
+      { "name": "autoDeleteSentEmails", "when": "Sunday 22:00", "description": "Searches Gmail sent folder for [AUTO]-tagged subjects, trashes them, reports count to managers." }
+    ],
+    "note": "This JSON file is a periodic read-only mirror of the live sheet. All writes, locking, and email automation continue to happen exclusively inside Google Sheets via Apps Script."
+  }
+}

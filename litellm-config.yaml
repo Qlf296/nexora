@@ -1,0 +1,94 @@
+# NEXORA — LiteLLM Proxy Configuration
+# =============================================================================
+# Cost-minimal routing for the NEXORA Hub:
+#   Level 1 (default, ~0€)  -> Groq / Gemini Flash / local Ollama
+#   Level 2 (fallback, Pro) -> Claude (Anthropic), used only when the Hub's
+#                               own router decides a request is complex
+#                               (heavy code, deep analysis, strategic
+#                               decisions). See nexora-hub/server.js
+#                               `pickModel()` for that decision logic.
+#
+# LiteLLM itself does not do semantic/complexity routing — it load-balances
+# and fails over between the deployments you give it. The two-tier behavior
+# is implemented by the Hub, which asks for either the "nexora-free" alias
+# or the "nexora-pro" alias depending on the request. This file defines:
+#   1. The real model deployments behind each alias.
+#   2. A within-tier fallback chain so Level 1 never silently escalates to
+#      paid Claude just because one free provider is rate-limited.
+#
+# Deploy: this file is the versioned source of truth. The existing launchd
+# daemon (launchd/start-litellm.sh) currently points at `~/config.yaml`.
+# To adopt this file without touching the live daemon definition, run once:
+#   ln -sf "$(pwd)/litellm-config.yaml" ~/config.yaml
+# (symlink, not a copy — edits here take effect on the next LiteLLM restart).
+# =============================================================================
+
+model_list:
+  # ---------------------------------------------------------------------------
+  # Level 1 — free tier, default for standard requests / synthesis / triage
+  # ---------------------------------------------------------------------------
+  - model_name: nexora-free
+    litellm_params:
+      model: groq/llama-3.3-70b-versatile
+      api_key: os.environ/GROQ_API_KEY
+    model_info:
+      tier: free
+      provider_label: "Groq (Llama 3.3 70B)"
+
+  - model_name: nexora-free
+    litellm_params:
+      model: gemini/gemini-2.0-flash
+      api_key: os.environ/GEMINI_API_KEY
+    model_info:
+      tier: free
+      provider_label: "Gemini 2.0 Flash"
+
+  - model_name: nexora-free
+    litellm_params:
+      model: ollama/llama3.1
+      api_base: os.environ/OLLAMA_API_BASE
+    model_info:
+      tier: free
+      provider_label: "Ollama (local, llama3.1)"
+
+  # ---------------------------------------------------------------------------
+  # Level 2 — fallback / Pro, only for complex analysis, heavy code, strategy
+  # ---------------------------------------------------------------------------
+  - model_name: nexora-pro
+    litellm_params:
+      model: anthropic/claude-sonnet-5-5
+      api_key: os.environ/ANTHROPIC_API_KEY
+    model_info:
+      tier: pro
+      provider_label: "Claude Sonnet 5.5 (Anthropic)"
+
+  - model_name: nexora-pro
+    litellm_params:
+      model: anthropic/claude-opus-5-5
+      api_key: os.environ/ANTHROPIC_API_KEY
+    model_info:
+      tier: pro
+      provider_label: "Claude Opus 5.5 (Anthropic, deep-analysis fallback)"
+
+litellm_settings:
+  drop_params: true
+  num_retries: 2
+  request_timeout: 60
+  # Within the "nexora-free" group, load-balance across deployments and
+  # retry the next free provider on error/rate-limit before ever touching
+  # the "nexora-pro" group. The Hub only requests "nexora-pro" explicitly.
+  allowed_fails: 2
+  cooldown_time: 30
+
+router_settings:
+  routing_strategy: simple-shuffle
+  # If every Level 1 provider is down, fail loudly rather than silently
+  # spending on Claude — the Hub's AI Router Status widget surfaces this
+  # as "Level 1 unavailable" instead of auto-upgrading cost tier.
+  fallbacks: []
+
+general_settings:
+  # Matches the value already exported by launchd/start-litellm.sh
+  # (LITELLM_MASTER_KEY="sk-nexora-local-1234") so the existing daemon
+  # keeps working unchanged. Override via env var for any other deployment.
+  master_key: os.environ/LITELLM_MASTER_KEY
