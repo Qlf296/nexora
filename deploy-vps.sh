@@ -27,6 +27,9 @@
 #     ever pulled new commits onto the VPS. Safe to re-run any time — it
 #     clones on first run, then fetch + hard-reset to origin/main on every
 #     later run. .env is untracked and is never touched by the sync.
+#
+# BRANCH: nexora-clean (orphan, deployable subset — updated 2026-11-10 to include
+#   Inditex/schedule modules in public/tools and "Outils Métier" dashboard widget).
 set -euo pipefail
 
 ### 1) Docker Engine + Compose plugin ###
@@ -38,23 +41,24 @@ if ! command -v docker &>/dev/null; then
 fi
 sudo systemctl enable --now docker
 
-### 1.5) Sync code from git — keeps the VPS up to date with origin/main ###
-#     (Qlf296/nexora on GitHub). This is what was missing before: the script
-#     used to just `cd` into an existing checkout and never pulled new code,
-#     so VPS re-runs kept redeploying stale files even after local commits.
+### 1.5) Sync code from git — keeps the VPS up to date with origin/nexora-clean ###
+#     nexora-clean is the deployable orphan branch: it contains only nexora-hub
+#     and ops scripts, with no OpenClaw monorepo history. All new features
+#     (Inditex/schedule modules, widget CSS, etc.) land here first.
 NEXORA_REPO="https://github.com/Qlf296/nexora.git"
 NEXORA_DIR="$HOME/Halim-AI"
+NEXORA_BRANCH="nexora-clean"
 
 if [ ! -d "$NEXORA_DIR/.git" ]; then
-  echo ">>> Cloning $NEXORA_REPO into $NEXORA_DIR ..."
-  git clone "$NEXORA_REPO" "$NEXORA_DIR"
+  echo ">>> Cloning $NEXORA_REPO (branch: $NEXORA_BRANCH) into $NEXORA_DIR ..."
+  git clone --branch "$NEXORA_BRANCH" "$NEXORA_REPO" "$NEXORA_DIR"
 else
-  echo ">>> Syncing $NEXORA_DIR with origin/main ..."
+  echo ">>> Syncing $NEXORA_DIR with origin/$NEXORA_BRANCH ..."
   cd "$NEXORA_DIR"
   git fetch origin
-  git reset --hard origin/main
-  echo ">>> NOTE: 'git reset --hard' overwrote any local edits to tracked files"
-  echo "    (e.g. manual litellm-config.yaml tweaks made directly on the VPS)."
+  git checkout "$NEXORA_BRANCH" 2>/dev/null || git checkout -b "$NEXORA_BRANCH" "origin/$NEXORA_BRANCH"
+  git reset --hard "origin/$NEXORA_BRANCH"
+  echo ">>> NOTE: 'git reset --hard' overwrote any local edits to tracked files."
   echo "    .env is untracked by git, so it is never touched by this sync."
 fi
 
