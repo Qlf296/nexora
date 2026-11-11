@@ -435,43 +435,69 @@ body.light input, body.light select, body.light textarea { background: var(--bg2
 .weather-desc { font-size: 13px; color: var(--txt2); }
 .weather-loc  { font-size: 10px; color: var(--txt3); margin-top: 2px; }
 
-/* ── TOOL EMBED ── */
-.tools-embed { display: flex; flex-direction: column; gap: 0; }
-.tool-tabs-bar {
-  display: flex; align-items: center; gap: 6px;
-  border-bottom: 1px solid var(--cb); padding-bottom: 8px; margin-bottom: 10px; flex-wrap: wrap;
-}
-.tool-tab-btn {
-  display: flex; align-items: center; gap: 6px;
-  background: var(--bg3); border: 1px solid var(--cb); color: var(--txt2);
-  border-radius: 999px; padding: 7px 12px; font-size: 12px; font-weight: 600;
-  cursor: pointer; transition: var(--tr); font-family: inherit;
-}
-.tool-tab-btn:hover { border-color: var(--acc); color: var(--txt); }
-.tool-tab-btn.active { background: var(--acc); border-color: var(--acc); color: #111; }
-.tool-tl { display: none; }
-@media (min-width: 420px) { .tool-tl { display: inline; } }
+/* ── ZARA HUB SECTION PICKER ── */
+.zara-nav-card { padding: 14px 12px; }
 
+.zara-space-lbl {
+  font-size: 9.5px; font-weight: 700; letter-spacing: .09em;
+  color: var(--txt3); text-transform: uppercase; margin-bottom: 8px;
+}
+
+.zara-sec-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px;
+}
+/* Me space: 5 items — allow auto-fill */
+.zara-sec-grid:last-of-type { grid-template-columns: repeat(5, 1fr); }
+
+.zara-sec-btn {
+  background: var(--bg3); border: 1px solid var(--hair);
+  border-radius: 11px; color: var(--txt2);
+  font-size: 11px; line-height: 1.4; padding: 9px 4px 8px;
+  cursor: pointer; transition: var(--tr); font-family: inherit;
+  text-align: center;
+}
+.zara-sec-btn:hover  { background: var(--glass); color: var(--txt); border-color: var(--cb); }
+.zara-sec-btn.active { background: var(--acc); color: #111; border-color: var(--acc2); font-weight: 600; }
+body.light .zara-sec-btn.active { color: #000; }
+
+/* Schedule full-width button */
+.zara-schedule-btn {
+  margin-top: 12px; width: 100%;
+  background: var(--bg3); border: 1px solid var(--hair);
+  border-radius: 11px; color: var(--txt2);
+  font-size: 12px; font-weight: 600; padding: 10px 14px;
+  cursor: pointer; transition: var(--tr); font-family: inherit;
+  text-align: left;
+}
+.zara-schedule-btn:hover  { background: var(--glass); color: var(--txt); border-color: var(--cb); }
+.zara-schedule-btn.active { background: var(--ios); color: #fff; border-color: var(--ios); }
+
+/* ── ZARA FRAME CONTAINER ── */
+.zara-frame-wrap {
+  border: 1px solid var(--cb); border-radius: var(--rs);
+  overflow: hidden; background: var(--bg2);
+}
+
+.zara-frame-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--bg2); border-bottom: 1px solid var(--hair);
+  font-size: 13px; font-weight: 600; color: var(--txt);
+}
+
+.zara-iframe {
+  width: 100%; height: 68vh; border: none; display: block; background: var(--bg2);
+}
+@media (max-width: 600px) { .zara-iframe { height: 62vh; } }
+
+/* keep old .tool-expand-btn for the ⤢ link */
 .tool-expand-btn {
-  margin-left: auto; text-decoration: none;
+  text-decoration: none;
   background: var(--bg3); border: 1px solid var(--cb); color: var(--txt2);
-  border-radius: 999px; width: 32px; height: 32px;
-  display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0;
+  border-radius: 999px; width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0;
 }
 .tool-expand-btn:hover { border-color: var(--acc); color: var(--txt); }
-
-.tool-frame-wrap {
-  position: relative; height: 68vh;
-  border: 1px solid var(--cb); border-radius: var(--rs); overflow: hidden;
-  background: var(--bg2);
-}
-@media (max-width: 600px) { .tool-frame-wrap { height: 62vh; } }
-
-.tool-frame {
-  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-  border: none; display: none; background: var(--bg2);
-}
-.tool-frame.active { display: block; }
 
 /* ── AUDIT LOG ── */
 .log-row {

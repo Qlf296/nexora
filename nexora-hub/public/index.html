@@ -221,23 +221,52 @@
       <div class="page-title">Travail — Utrecht</div>
       <button class="refresh-btn" id="refreshWork">↺</button>
     </div>
+
+    <!-- ─ Team availability ─ -->
     <div class="sh">Équipe — Disponibilité</div>
     <div class="card" id="workTeam"><span class="loading-txt">Chargement…</span></div>
-    <div class="sh">Outils Inditex</div>
-    <div class="tools-embed">
-      <div class="tool-tabs-bar" role="tablist">
-        <button class="tool-tab-btn active" data-tool="inditex" role="tab" aria-selected="true">
-          <span>🏭</span> <span class="tool-tl">ZARA Logistics Hub</span>
-        </button>
-        <button class="tool-tab-btn" data-tool="schedule" role="tab" aria-selected="false">
-          <span>📅</span> <span class="tool-tl">Schedule — Équipe</span>
-        </button>
-        <a class="tool-expand-btn" id="toolExpandLink" href="/tools/inditex-logistic.html" target="_blank" rel="noopener" title="Plein écran">⤢</a>
+
+    <!-- ─ ZARA Hub section picker ─ -->
+    <div class="sh">ZARA Logistics Hub</div>
+    <div class="card zara-nav-card" id="zaraNavCard">
+
+      <div class="zara-space-lbl">⬛ ZARA STORE</div>
+      <div class="zara-sec-grid">
+        <button class="zara-sec-btn active" data-space="store" data-page="dashboard">📊<br>Dash</button>
+        <button class="zara-sec-btn" data-space="store" data-page="team">👥<br>Team</button>
+        <button class="zara-sec-btn" data-space="store" data-page="dayplan">🗓<br>Day Plan</button>
+        <button class="zara-sec-btn" data-space="store" data-page="skills">🎓<br>Skills</button>
+        <button class="zara-sec-btn" data-space="store" data-page="followup">📌<br>Staff</button>
+        <button class="zara-sec-btn" data-space="store" data-page="sevendays">🛡<br>7 Days</button>
+        <button class="zara-sec-btn" data-space="store" data-page="feedback">📝<br>Feedback</button>
+        <button class="zara-sec-btn" data-space="store" data-page="dreport">📋<br>Report</button>
+        <button class="zara-sec-btn" data-space="store" data-page="reminder">🔔<br>Alert</button>
       </div>
-      <div class="tool-frame-wrap">
-        <iframe class="tool-frame active" id="toolFrameInditex" title="ZARA Logistics Hub" src="/tools/inditex-logistic.html"></iframe>
-        <iframe class="tool-frame" id="toolFrameSchedule" title="Schedule — Équipe" data-src="/tools/schedule-team.html"></iframe>
+
+      <div class="zara-space-lbl" style="margin-top:12px">💶 MON SALAIRE</div>
+      <div class="zara-sec-grid">
+        <button class="zara-sec-btn" data-space="me" data-page="me-dash">💶<br>Salary</button>
+        <button class="zara-sec-btn" data-space="me" data-page="me-shifts">🕐<br>Shifts</button>
+        <button class="zara-sec-btn" data-space="me" data-page="me-audit">⚖<br>Audit</button>
+        <button class="zara-sec-btn" data-space="me" data-page="me-import">📥<br>Data</button>
+        <button class="zara-sec-btn" data-space="me" data-page="me-set">⚙<br>Settings</button>
       </div>
+
+      <button class="zara-schedule-btn" id="zaraScheduleBtn" data-space="schedule" data-page="schedule">
+        📅 Schedule — Équipe
+      </button>
+    </div>
+
+    <!-- ─ Active section iframe ─ -->
+    <div class="zara-frame-wrap" id="zaraFrameWrap">
+      <div class="zara-frame-topbar">
+        <span id="zaraFrameLabel">📊 Dash</span>
+        <a href="/tools/inditex-logistic.html" target="_blank" rel="noopener" id="toolExpandLink" class="tool-expand-btn" title="Plein écran">⤢</a>
+      </div>
+      <iframe id="toolFrameInditex" class="zara-iframe" title="ZARA Logistics Hub"
+              src="/tools/inditex-logistic.html" allow="clipboard-write"></iframe>
+      <iframe id="toolFrameSchedule" class="zara-iframe" title="Schedule — Équipe"
+              data-src="/tools/schedule-team.html" style="display:none" allow="clipboard-write"></iframe>
     </div>
   </div>
 

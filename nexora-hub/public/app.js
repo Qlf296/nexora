@@ -676,7 +676,97 @@ function calcSim() {
 
 // ══ WORK & PROJECTS ══════════════════════════════════════════════════════
 
+// ── ZARA Hub section map (space + display label) ─────────────────
+const ZARA_SECS = {
+  dashboard: { space: "store", label: "📊 Dash" },
+  team: { space: "store", label: "👥 Team" },
+  dayplan: { space: "store", label: "🗓 Day Plan" },
+  skills: { space: "store", label: "🎓 Skills" },
+  followup: { space: "store", label: "📌 Staff" },
+  sevendays: { space: "store", label: "🛡 7 Days" },
+  feedback: { space: "store", label: "📝 Feedback" },
+  dreport: { space: "store", label: "📋 Report" },
+  reminder: { space: "store", label: "🔔 Alert" },
+  "me-dash": { space: "me", label: "💶 Salary" },
+  "me-shifts": { space: "me", label: "🕐 Shifts" },
+  "me-audit": { space: "me", label: "⚖ Audit" },
+  "me-import": { space: "me", label: "📥 Data" },
+  "me-set": { space: "me", label: "⚙ Settings" },
+};
+
+// Navigate ZARA iframe to a specific section (same-origin → direct call)
+function zaraGo(space, pageId) {
+  const fInditex = el("toolFrameInditex");
+  const fSchedule = el("toolFrameSchedule");
+  if (!fInditex) return;
+
+  // ── Switch to Schedule mode ──────────────────────────────────────
+  if (space === "schedule") {
+    fInditex.style.display = "none";
+    fSchedule.style.display = "block";
+    if (!fSchedule.src && fSchedule.dataset.src) fSchedule.src = fSchedule.dataset.src;
+
+    document.querySelectorAll(".zara-sec-btn").forEach((b) => b.classList.remove("active"));
+    el("zaraScheduleBtn")?.classList.add("active");
+    if (el("zaraFrameLabel")) el("zaraFrameLabel").textContent = "📅 Schedule — Équipe";
+    if (el("toolExpandLink")) el("toolExpandLink").href = "/tools/schedule-team.html";
+    return;
+  }
+
+  // ── Switch to ZARA section ───────────────────────────────────────
+  fInditex.style.display = "block";
+  fSchedule.style.display = "none";
+
+  // Update nav highlights
+  document.querySelectorAll(".zara-sec-btn").forEach((b) => {
+    b.classList.toggle("active", b.dataset.page === pageId);
+  });
+  el("zaraScheduleBtn")?.classList.remove("active");
+
+  // Update topbar
+  const sec = ZARA_SECS[pageId];
+  if (sec && el("zaraFrameLabel")) el("zaraFrameLabel").textContent = sec.label;
+  if (el("toolExpandLink")) el("toolExpandLink").href = "/tools/inditex-logistic.html";
+
+  // Navigate inside the iframe via same-origin contentWindow call.
+  // Use typeof-check instead of a dataset flag — the flag can miss if
+  // the iframe already finished loading before the listener was wired.
+  function navigate() {
+    try {
+      fInditex.contentWindow.hubShow(space, pageId);
+    } catch (_) {}
+  }
+  const isReady = (() => {
+    try {
+      return typeof fInditex.contentWindow.hubShow === "function";
+    } catch (_) {
+      return false;
+    }
+  })();
+  if (isReady) {
+    navigate();
+  } else {
+    fInditex.addEventListener("load", function onLoad() {
+      fInditex.removeEventListener("load", onLoad);
+      navigate();
+    });
+  }
+}
+
+// Wire section picker buttons (called once on first Work tab visit)
+function wireZaraSections() {
+  if (el("zaraNavCard")?.dataset.wired) return;
+  if (el("zaraNavCard")) el("zaraNavCard").dataset.wired = "1";
+
+  document.querySelectorAll(".zara-sec-btn[data-page]").forEach((btn) => {
+    btn.addEventListener("click", () => zaraGo(btn.dataset.space, btn.dataset.page));
+  });
+  el("zaraScheduleBtn")?.addEventListener("click", () => zaraGo("schedule", "schedule"));
+}
+
 async function renderWork() {
+  wireZaraSections();
+
   const teamBox = el("workTeam");
   try {
     const data = await apiFetch("/api/widgets/team");
@@ -714,34 +804,6 @@ async function renderWork() {
   } catch (_) {
     teamBox.innerHTML = `<div class="alert a-d"><span class="ai">⚠️</span><span>Données équipe inaccessibles.</span></div>`;
   }
-
-  // Wire tool tab buttons (safe once)
-  if (!el("toolFrameInditex").dataset.wired) {
-    el("toolFrameInditex").dataset.wired = "1";
-    document
-      .querySelectorAll(".tool-tab-btn[data-tool]")
-      .forEach((btn) => btn.addEventListener("click", () => switchTool(btn.dataset.tool)));
-  }
-}
-
-function switchTool(name) {
-  const framesMap = { inditex: el("toolFrameInditex"), schedule: el("toolFrameSchedule") };
-  const hrefsMap = {
-    inditex: "/tools/inditex-logistic.html",
-    schedule: "/tools/schedule-team.html",
-  };
-
-  document.querySelectorAll(".tool-tab-btn[data-tool]").forEach((b) => {
-    b.classList.toggle("active", b.dataset.tool === name);
-    b.setAttribute("aria-selected", b.dataset.tool === name ? "true" : "false");
-  });
-  Object.entries(framesMap).forEach(([k, f]) => {
-    if (!f) return;
-    f.classList.toggle("active", k === name);
-    if (k === name && !f.src && f.dataset.src) f.src = f.dataset.src;
-  });
-  const expLink = el("toolExpandLink");
-  if (expLink && hrefsMap[name]) expLink.href = hrefsMap[name];
 }
 
 // ══ DAILY LIFE ════════════════════════════════════════════════════════════
