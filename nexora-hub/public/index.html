@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-theme="dark">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -24,9 +24,12 @@
           <span class="brand-dot"></span>
           <span class="brand-name">NEXORA</span>
         </div>
-        <div class="router-pill" id="routerPill" title="Modèle actif">
-          <span id="routerPillDot" class="dot dot-free"></span>
-          <span id="routerPillText">—</span>
+        <div class="header-actions">
+          <button type="button" class="icon-btn" id="themeToggleBtn" title="Basculer thème clair / sombre">🌙</button>
+          <div class="router-pill" id="routerPill" title="Modèle actif">
+            <span id="routerPillDot" class="dot dot-free"></span>
+            <span id="routerPillText">—</span>
+          </div>
         </div>
       </header>
 
@@ -125,29 +128,28 @@
           <div class="widget-body" id="redditBody">Chargement…</div>
         </article>
 
-        <!-- Outils Métier — Inditex / Schedule -->
-        <article class="widget widget-tools" id="widgetTools">
+        <!-- Personnel — Travail (Inditex / Schedule) — embarqués en natif, pas des liens isolés -->
+        <article class="widget widget-tools widget-personal-work" id="widgetTools">
           <div class="widget-head">
-            <h2>Outils Métier</h2>
+            <h2><span class="section-icon" aria-hidden="true">🗂️</span> Personnel — Travail</h2>
             <span class="badge badge-live">2 outils</span>
           </div>
-          <div class="widget-body tools-list">
-            <a class="tool-link" href="/tools/inditex-logistic.html" target="_blank" rel="noopener">
-              <span class="tool-icon">🏭</span>
-              <div class="tool-info">
-                <strong>Inditex — ZARA Logistics Hub</strong>
-                <small>Planification équipe Utrecht / logistique</small>
-              </div>
-              <span class="tool-arrow">↗</span>
-            </a>
-            <a class="tool-link" href="/tools/schedule-team.html" target="_blank" rel="noopener">
-              <span class="tool-icon">📅</span>
-              <div class="tool-info">
-                <strong>Schedule — Test Management</strong>
-                <small>Gestion des plannings et tests équipe</small>
-              </div>
-              <span class="tool-arrow">↗</span>
-            </a>
+          <div class="widget-body tools-embed">
+            <div class="tool-tabs" role="tablist" aria-label="Outils de travail">
+              <button type="button" class="tool-tab active" id="toolTabInditex" role="tab" aria-selected="true" aria-controls="toolFrameInditex" data-tool="inditex">
+                <span class="tool-icon">🏭</span>
+                <span class="tool-tab-label">Inditex — ZARA Logistics Hub</span>
+              </button>
+              <button type="button" class="tool-tab" id="toolTabSchedule" role="tab" aria-selected="false" aria-controls="toolFrameSchedule" data-tool="schedule">
+                <span class="tool-icon">📅</span>
+                <span class="tool-tab-label">Schedule — Test Management</span>
+              </button>
+              <a class="tool-tab tool-tab-expand" id="toolExpandLink" href="/tools/inditex-logistic.html" target="_blank" rel="noopener" title="Ouvrir en plein écran">⤢</a>
+            </div>
+            <div class="tool-frame-wrap">
+              <iframe class="tool-frame active" id="toolFrameInditex" title="Inditex — ZARA Logistics Hub" src="/tools/inditex-logistic.html"></iframe>
+              <iframe class="tool-frame" id="toolFrameSchedule" title="Schedule — Test Management" data-src="/tools/schedule-team.html"></iframe>
+            </div>
           </div>
         </article>
 

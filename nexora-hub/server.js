@@ -312,10 +312,14 @@ async function handleFinanceWidget(req, res, query) {
       { headers: { "User-Agent": "Mozilla/5.0 (nexora-hub widget)" } },
     );
     const quotes = (json?.quoteResponse?.result || []).map((q) => ({
-      symbol: q.symbol,
-      price: q.regularMarketPrice,
-      changePercent: q.regularMarketChangePercent,
-      currency: q.currency,
+      symbol: q.symbol || "—",
+      // Yahoo's unauthenticated endpoint can return 200 OK with individual
+      // fields missing (e.g. regularMarketPrice absent for a bad symbol).
+      // Coerce to null/0 here so the frontend never has to interpolate a
+      // raw `undefined` into the DOM.
+      price: typeof q.regularMarketPrice === "number" ? q.regularMarketPrice : null,
+      changePercent: typeof q.regularMarketChangePercent === "number" ? q.regularMarketChangePercent : 0,
+      currency: q.currency || "USD",
     }));
     if (quotes.length === 0) throw new Error("empty result");
     sendJSON(res, 200, { demo: false, quotes });

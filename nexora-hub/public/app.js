@@ -323,9 +323,12 @@ async function loadFinanceWidget() {
         .map((q) => {
           const pct = Number(q.changePercent) || 0;
           const sign = pct >= 0 ? "+" : "";
+          // q.price may be null when Yahoo's endpoint omits the field;
+          // never let a raw null/undefined leak into the template.
+          const priceStr = typeof q.price === "number" ? q.price : "—";
           return `<div class="router-stat"><span class="label">${escapeHtml(
             q.symbol
-          )}</span><span class="value">${q.price} ${escapeHtml(q.currency || "")} (${sign}${pct.toFixed(
+          )}</span><span class="value">${priceStr} ${escapeHtml(q.currency || "")} (${sign}${pct.toFixed(
             2
           )}%)</span></div>`;
         })
@@ -476,3 +479,68 @@ if ("serviceWorker" in navigator) {
     });
   });
 }
+
+/* ===================== PERSONNEL — TRAVAIL (tool tabs) ===================== */
+const toolTabs = document.querySelectorAll(".tool-tab[data-tool]");
+const toolFrames = {
+  inditex: document.getElementById("toolFrameInditex"),
+  schedule: document.getElementById("toolFrameSchedule"),
+};
+const toolExpandLink = document.getElementById("toolExpandLink");
+const toolHrefs = {
+  inditex: "/tools/inditex-logistic.html",
+  schedule: "/tools/schedule-team.html",
+};
+
+function activateTool(name) {
+  toolTabs.forEach((btn) => {
+    const isActive = btn.dataset.tool === name;
+    btn.classList.toggle("active", isActive);
+    btn.setAttribute("aria-selected", isActive ? "true" : "false");
+  });
+  Object.entries(toolFrames).forEach(([key, frame]) => {
+    if (!frame) return;
+    const isActive = key === name;
+    frame.classList.toggle("active", isActive);
+    if (isActive && !frame.getAttribute("src") && frame.dataset.src) {
+      frame.setAttribute("src", frame.dataset.src);
+    }
+  });
+  if (toolExpandLink && toolHrefs[name]) {
+    toolExpandLink.setAttribute("href", toolHrefs[name]);
+  }
+}
+
+toolTabs.forEach((btn) => {
+  btn.addEventListener("click", () => activateTool(btn.dataset.tool));
+});
+
+/* ===================== THEME (light/dark) ===================== */
+const THEME_KEY = "nexora_theme";
+const themeToggleBtn = document.getElementById("themeToggleBtn");
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  if (themeToggleBtn) themeToggleBtn.textContent = theme === "light" ? "☀️" : "🌙";
+}
+
+function initTheme() {
+  const stored = localStorage.getItem(THEME_KEY);
+  if (stored === "light" || stored === "dark") {
+    applyTheme(stored);
+    return;
+  }
+  const prefersLight = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
+  applyTheme(prefersLight ? "light" : "dark");
+}
+
+if (themeToggleBtn) {
+  themeToggleBtn.addEventListener("click", () => {
+    const current = document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
+    const next = current === "light" ? "dark" : "light";
+    localStorage.setItem(THEME_KEY, next);
+    applyTheme(next);
+  });
+}
+
+initTheme();
