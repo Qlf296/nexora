@@ -1,162 +1,407 @@
 <!DOCTYPE html>
-<html lang="fr" data-theme="dark">
+<html lang="fr">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>NEXORA Hub — Control Center</title>
-
-<!-- PWA (manifest + icons wired up in a later pass; links are safe no-ops until then) -->
-<link rel="manifest" href="/manifest.json" />
-<meta name="theme-color" content="#0b0f17" />
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="apple-mobile-web-app-title" content="NEXORA" />
-<link rel="apple-touch-icon" href="/icons/icon-192.png" />
-
-<link rel="stylesheet" href="/style.css" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0b12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NEXORA">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<title>NEXORA — AI Command Center</title>
+<link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <div class="app">
-    <!-- ============== LEFT: CHAT (≈38%) ============== -->
-    <section class="chat-pane">
-      <header class="chat-header">
-        <div class="brand">
-          <span class="brand-dot"></span>
-          <span class="brand-name">NEXORA</span>
-        </div>
-        <div class="header-actions">
-          <button type="button" class="icon-btn" id="themeToggleBtn" title="Basculer thème clair / sombre">🌙</button>
-          <div class="router-pill" id="routerPill" title="Modèle actif">
-            <span id="routerPillDot" class="dot dot-free"></span>
-            <span id="routerPillText">—</span>
-          </div>
-        </div>
-      </header>
 
+<!-- ══ TOP NAV ══ -->
+<nav class="nav">
+  <div class="nav-l">
+    <span class="brand-dot"></span>
+    <div>
+      <div class="nav-title">NEXORA</div>
+      <div class="nav-sub">AI Command Center</div>
+    </div>
+  </div>
+  <div class="nav-r">
+    <div class="router-pill" id="routerPill">
+      <span class="dot dot-off" id="routerDot"></span>
+      <span id="routerLabel">—</span>
+    </div>
+    <button class="icon-btn" id="themeBtn" title="Thème">🌙</button>
+  </div>
+</nav>
+
+<!-- ══ PAGES ══ -->
+<main class="main">
+
+  <!-- ── 1. Command Center ── -->
+  <div class="page active" id="page-cmd">
+    <div class="page-toolbar">
+      <div>
+        <div class="page-title" id="cmdGreeting">Bonjour, Halim</div>
+        <div class="page-sub" id="cmdDate"></div>
+      </div>
+      <button class="refresh-btn" id="refreshCmd">↺ Rafraîchir</button>
+    </div>
+
+    <div class="sh">Statut système</div>
+    <div class="sg sg3" id="cmdStats">
+      <div class="sc"><div class="sv" id="cmStatReqs">—</div><div class="sl">Requêtes</div></div>
+      <div class="sc"><div class="sv" id="cmStatCost">—</div><div class="sl">Coût est.</div></div>
+      <div class="sc"><div class="sv" id="cmStatModel">—</div><div class="sl">Modèle</div></div>
+    </div>
+
+    <div class="sh">Prochain train Arnhem → Utrecht</div>
+    <div id="cmdCommute"><span class="loading-txt">Chargement…</span></div>
+
+    <div class="sh">Approbations en attente</div>
+    <div id="cmdApprovals"></div>
+
+    <div class="sh">Navigation rapide</div>
+    <div class="quick-grid" id="cmdModules"></div>
+  </div>
+
+  <!-- ── 2. AI Chat ── -->
+  <div class="page" id="page-chat">
+    <div class="chat-lang-bar">
+      <span class="lang-pill active" data-lang="fr">🇫🇷 FR</span>
+      <span class="lang-pill active" data-lang="en">🇬🇧 EN</span>
+      <span class="lang-pill active" data-lang="ar">🇩🇿 Darija</span>
+      <span class="lang-pill active" data-lang="uk">🇺🇦 UK</span>
+      <span class="lang-pill active" data-lang="ru">🇷🇺 RU</span>
+      <span class="router-pill" style="margin-left:auto;padding:4px 9px">
+        <span class="dot dot-off" id="chatDot"></span>
+        <span id="chatModel" style="font-size:11px">—</span>
+      </span>
+    </div>
+    <div class="chat-wrap">
       <div class="chat-messages" id="chatMessages">
         <div class="msg msg-assistant">
           <div class="msg-bubble">
-            Bonjour Halim. Je suis NEXORA. Pose ta question — je route automatiquement
-            vers le niveau gratuit (Groq / Gemini Flash / Ollama) sauf si la tâche est
-            complexe, où je bascule sur Claude.
+            Bonjour Halim. Je suis NEXORA — ton centre de commande IA multilingue.<br>
+            Je comprends le français, l'anglais, l'arabe/darija, l'ukrainien et le russe. Pose ta question ou donne-moi une tâche.
           </div>
         </div>
       </div>
-
-      <div class="chat-attachments" id="chatAttachments" hidden></div>
-
+      <div class="chip-row" id="chatAttachments" hidden></div>
       <form class="chat-input-row" id="chatForm">
-        <input type="file" id="fileInput" multiple hidden />
-        <button type="button" class="icon-btn" id="attachBtn" title="Joindre un fichier">📎</button>
+        <input type="file" id="fileInput" multiple hidden>
+        <button type="button" class="icon-btn" id="attachBtn" title="Joindre">📎</button>
         <textarea id="chatInput" placeholder="Écris à NEXORA…" rows="1"></textarea>
-        <select id="tierSelect" title="Forcer un niveau">
+        <select id="tierSelect">
           <option value="auto">Auto</option>
           <option value="free">Gratuit</option>
-          <option value="pro">Pro (Claude)</option>
+          <option value="pro">Pro</option>
         </select>
-        <button type="submit" class="send-btn" id="sendBtn">Envoyer</button>
+        <button type="submit" class="send-btn" id="sendBtn">▶</button>
       </form>
-    </section>
-
-    <!-- ============== RIGHT: DASHBOARD (≈62%) ============== -->
-    <section class="dashboard-pane">
-      <header class="dashboard-header">
-        <h1>Control Center</h1>
-        <button class="refresh-all" id="refreshAll">⟳ Rafraîchir tout</button>
-      </header>
-
-      <div class="widget-grid">
-
-        <!-- AI Router Status -->
-        <article class="widget widget-router" id="widgetRouter">
-          <div class="widget-head">
-            <h2>AI Router Status</h2>
-            <span class="badge badge-live">live</span>
-          </div>
-          <div class="widget-body" id="routerBody">
-            <div class="router-stat"><span class="label">Modèle actif</span><span class="value" id="rsModel">—</span></div>
-            <div class="router-stat"><span class="label">Niveau</span><span class="value" id="rsTier">—</span></div>
-            <div class="router-stat"><span class="label">Requêtes gratuites</span><span class="value" id="rsFree">0</span></div>
-            <div class="router-stat"><span class="label">Requêtes Pro</span><span class="value" id="rsPro">0</span></div>
-            <div class="router-stat"><span class="label">Coût estimé</span><span class="value" id="rsCost">$0.00</span></div>
-            <div class="router-stat router-stat-error" id="rsErrorRow" hidden><span class="label">Erreur</span><span class="value" id="rsError"></span></div>
-          </div>
-        </article>
-
-        <!-- Portfolio / Investments -->
-        <article class="widget" id="widgetFinance">
-          <div class="widget-head">
-            <h2>Portefeuille &amp; Investissements</h2>
-            <span class="badge" id="financeBadge">—</span>
-          </div>
-          <div class="widget-body" id="financeBody">Chargement…</div>
-        </article>
-
-        <!-- Social networks -->
-        <article class="widget" id="widgetSocial">
-          <div class="widget-head">
-            <h2>Réseaux Sociaux</h2>
-            <span class="badge" id="socialBadge">—</span>
-          </div>
-          <div class="widget-body" id="socialBody">Chargement…</div>
-        </article>
-
-        <!-- Team Availability — Utrecht -->
-        <article class="widget widget-team" id="widgetTeam">
-          <div class="widget-head">
-            <h2>Équipe Utrecht — Disponibilité</h2>
-            <span class="badge" id="teamBadge">—</span>
-          </div>
-          <div class="widget-body" id="teamBody">Chargement…</div>
-        </article>
-
-        <!-- GitHub -->
-        <article class="widget" id="widgetGithub">
-          <div class="widget-head">
-            <h2>GitHub</h2>
-            <span class="badge" id="githubBadge">—</span>
-          </div>
-          <div class="widget-body" id="githubBody">Chargement…</div>
-        </article>
-
-        <!-- Reddit -->
-        <article class="widget" id="widgetReddit">
-          <div class="widget-head">
-            <h2>Reddit</h2>
-            <span class="badge" id="redditBadge">—</span>
-          </div>
-          <div class="widget-body" id="redditBody">Chargement…</div>
-        </article>
-
-        <!-- Personnel — Travail (Inditex / Schedule) — embarqués en natif, pas des liens isolés -->
-        <article class="widget widget-tools widget-personal-work" id="widgetTools">
-          <div class="widget-head">
-            <h2><span class="section-icon" aria-hidden="true">🗂️</span> Personnel — Travail</h2>
-            <span class="badge badge-live">2 outils</span>
-          </div>
-          <div class="widget-body tools-embed">
-            <div class="tool-tabs" role="tablist" aria-label="Outils de travail">
-              <button type="button" class="tool-tab active" id="toolTabInditex" role="tab" aria-selected="true" aria-controls="toolFrameInditex" data-tool="inditex">
-                <span class="tool-icon">🏭</span>
-                <span class="tool-tab-label">Inditex — ZARA Logistics Hub</span>
-              </button>
-              <button type="button" class="tool-tab" id="toolTabSchedule" role="tab" aria-selected="false" aria-controls="toolFrameSchedule" data-tool="schedule">
-                <span class="tool-icon">📅</span>
-                <span class="tool-tab-label">Schedule — Test Management</span>
-              </button>
-              <a class="tool-tab tool-tab-expand" id="toolExpandLink" href="/tools/inditex-logistic.html" target="_blank" rel="noopener" title="Ouvrir en plein écran">⤢</a>
-            </div>
-            <div class="tool-frame-wrap">
-              <iframe class="tool-frame active" id="toolFrameInditex" title="Inditex — ZARA Logistics Hub" src="/tools/inditex-logistic.html"></iframe>
-              <iframe class="tool-frame" id="toolFrameSchedule" title="Schedule — Test Management" data-src="/tools/schedule-team.html"></iframe>
-            </div>
-          </div>
-        </article>
-
-      </div>
-    </section>
+    </div>
   </div>
 
-  <script src="/app.js"></script>
+  <!-- ── 3. Communications / Inbox ── -->
+  <div class="page" id="page-inbox">
+    <div class="page-toolbar">
+      <div class="page-title">Communications</div>
+      <button class="refresh-btn" id="refreshInbox">↺</button>
+    </div>
+    <div class="sh">Plateformes connectées</div>
+    <div id="inboxPlatforms"></div>
+    <div class="sh">Workflow d'approbation</div>
+    <div id="inboxApprovalSettings"></div>
+    <div class="sh">Messages en attente d'approbation</div>
+    <div id="inboxPending">
+      <div class="empty-state">
+        <div class="empty-icon">✉️</div>
+        <div class="empty-txt">Aucun message en attente.<br>Connectez Telegram ou WhatsApp pour activer le workflow.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 4. Business & Growth ── -->
+  <div class="page" id="page-biz">
+    <div class="page-toolbar">
+      <div class="page-title">Business &amp; Growth</div>
+      <button class="refresh-btn" id="refreshBiz">↺</button>
+    </div>
+    <div class="sh">Projets GitHub</div>
+    <div id="bizGithub"><span class="loading-txt">Chargement…</span></div>
+    <div class="sh">Analytics Web</div>
+    <div class="card">
+      <div class="connect-card" style="margin-bottom:0">
+        <span class="connect-icon">📊</span>
+        <div class="connect-info">
+          <div class="connect-name">Google Analytics 4</div>
+          <div class="connect-note">Connecter via Google OAuth pour voir les métriques de trafic</div>
+        </div>
+        <span class="badge b-off">Non connecté</span>
+      </div>
+    </div>
+    <div class="card" style="margin-top:0">
+      <div class="connect-card" style="margin-bottom:0">
+        <span class="connect-icon">🔍</span>
+        <div class="connect-info">
+          <div class="connect-name">Google Search Console</div>
+          <div class="connect-note">Impressions, clics, CTR, position moyenne</div>
+        </div>
+        <span class="badge b-off">Non connecté</span>
+      </div>
+    </div>
+    <div class="sh">Communauté</div>
+    <div id="bizReddit"><span class="loading-txt">Chargement…</span></div>
+  </div>
+
+  <!-- ── 5. Intelligence & News ── -->
+  <div class="page" id="page-intel">
+    <div class="page-toolbar">
+      <div class="page-title">Intelligence</div>
+      <button class="refresh-btn" id="refreshIntel">↺</button>
+    </div>
+    <div class="sh">Marchés financiers</div>
+    <div id="intelFinance"><span class="loading-txt">Chargement…</span></div>
+    <div class="sh">Algérie — Actualités</div>
+    <div id="intelAlgeria"><span class="loading-txt">Chargement…</span></div>
+    <div class="sh">Ukraine — Situation</div>
+    <div id="intelUkraine"><span class="loading-txt">Chargement…</span></div>
+    <div class="sh">NL Immigration — IND</div>
+    <div id="intelIND">
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title">Statut Protection Temporaire UE</span>
+          <span class="badge b-info">Actif</span>
+        </div>
+        <div class="stat-row"><span class="label">Directive UE</span><span class="value">2001/55/EC</span></div>
+        <div class="stat-row"><span class="label">Durée actuelle</span><span class="value">Jusqu'à mars 2026</span></div>
+        <div class="stat-row"><span class="label">IND Arnhem</span><span class="value">Lun–Jeu 9h–16h</span></div>
+        <div class="stat-row"><span class="label">Site officiel</span><span class="value"><a href="https://ind.nl" target="_blank" rel="noopener">ind.nl ↗</a></span></div>
+        <div class="alert a-info" style="margin-top:10px;font-size:12px"><span class="ai">ℹ️</span><span>Vérifiez toujours les annonces officielles IND pour les mises à jour de politique.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 6. Finance & Investments ── -->
+  <div class="page" id="page-fin">
+    <div class="page-toolbar">
+      <div class="page-title">Finance &amp; Investissements</div>
+      <button class="refresh-btn" id="refreshFin">↺</button>
+    </div>
+    <div class="sh">Portefeuille — Cotations live</div>
+    <div class="card"><div id="finPortfolio"><span class="loading-txt">Chargement…</span></div></div>
+    <div class="sh">Budget mensuel</div>
+    <div class="card"><div id="budgetContent"></div></div>
+    <div class="sh">Simulateur ETF (€100–300/mois)</div>
+    <div class="card" id="finSimulator">
+      <div class="ir">
+        <div class="il">Montant mensuel (€)</div>
+        <input type="number" id="simAmount" value="150" min="50" max="2000" step="10">
+      </div>
+      <div class="ir">
+        <div class="il">Horizon (années)</div>
+        <input type="number" id="simYears" value="10" min="1" max="40">
+      </div>
+      <div class="ir">
+        <div class="il">Rendement annuel estimé (%)</div>
+        <input type="number" id="simRate" value="7" min="1" max="20" step="0.5">
+      </div>
+      <button class="btn btn-p" id="simCalcBtn">Calculer</button>
+      <div id="simResult" style="margin-top:12px"></div>
+    </div>
+    <div class="sh">Box 3 — Aperçu fiscal NL</div>
+    <div class="card">
+      <div class="stat-row"><span class="label">Seuil exonéré 2025</span><span class="value">57 684 €</span></div>
+      <div class="stat-row"><span class="label">Taux fictif</span><span class="value">6,04 % (2025)</span></div>
+      <div class="stat-row"><span class="label">Taux d'imposition</span><span class="value">36 % du revenu fictif</span></div>
+      <div class="alert a-info" style="margin-top:10px;font-size:12px"><span class="ai">ℹ️</span><span>Box 3 s'applique au-delà du seuil. Les ETF sont soumis au rendement fictif, pas aux plus-values réelles.</span></div>
+    </div>
+  </div>
+
+  <!-- ── 7. Work & Projects ── -->
+  <div class="page" id="page-work">
+    <div class="page-toolbar">
+      <div class="page-title">Travail — Utrecht</div>
+      <button class="refresh-btn" id="refreshWork">↺</button>
+    </div>
+    <div class="sh">Équipe — Disponibilité</div>
+    <div class="card" id="workTeam"><span class="loading-txt">Chargement…</span></div>
+    <div class="sh">Outils Inditex</div>
+    <div class="tools-embed">
+      <div class="tool-tabs-bar" role="tablist">
+        <button class="tool-tab-btn active" data-tool="inditex" role="tab" aria-selected="true">
+          <span>🏭</span> <span class="tool-tl">ZARA Logistics Hub</span>
+        </button>
+        <button class="tool-tab-btn" data-tool="schedule" role="tab" aria-selected="false">
+          <span>📅</span> <span class="tool-tl">Schedule — Équipe</span>
+        </button>
+        <a class="tool-expand-btn" id="toolExpandLink" href="/tools/inditex-logistic.html" target="_blank" rel="noopener" title="Plein écran">⤢</a>
+      </div>
+      <div class="tool-frame-wrap">
+        <iframe class="tool-frame active" id="toolFrameInditex" title="ZARA Logistics Hub" src="/tools/inditex-logistic.html"></iframe>
+        <iframe class="tool-frame" id="toolFrameSchedule" title="Schedule — Équipe" data-src="/tools/schedule-team.html"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 8. Daily Life ── -->
+  <div class="page" id="page-life">
+    <div class="page-toolbar">
+      <div class="page-title">Vie Quotidienne</div>
+      <button class="refresh-btn" id="refreshLife">↺</button>
+    </div>
+    <div class="sh">Trajet Arnhem → Utrecht Central</div>
+    <div class="commute-card" id="lifeNS">
+      <div class="commute-route">
+        <span>🚉 Arnhem Centraal</span>
+        <span class="commute-arrow">→</span>
+        <span>🏙️ Utrecht Centraal</span>
+      </div>
+      <div id="nsTrains"><span class="loading-txt">Chargement des départs…</span></div>
+    </div>
+    <div class="sh">Perturbations NS</div>
+    <div class="card" id="nsDisruptions"><span class="loading-txt">Chargement…</span></div>
+    <div class="sh">Météo — Arnhem</div>
+    <div class="card" id="lifeWeather"><span class="loading-txt">Chargement…</span></div>
+  </div>
+
+  <!-- ── 9. Automation ── -->
+  <div class="page" id="page-auto">
+    <div class="page-toolbar">
+      <div class="page-title">Automatisation</div>
+      <span class="badge b-off" style="align-self:center">Bêta</span>
+    </div>
+    <div class="sh">Statut des tâches</div>
+    <div id="autoJobs"></div>
+    <div class="sh">Journal d'audit</div>
+    <div class="card" id="autoAuditLog">
+      <div class="card-head">
+        <span class="card-title">Événements récents</span>
+        <button class="refresh-btn" id="refreshAudit" style="padding:4px 10px;font-size:11px">Actualiser</button>
+      </div>
+      <div id="auditLogContent"><span class="loading-txt">Journal vide.</span></div>
+    </div>
+    <div class="sh">Triggers actifs</div>
+    <div class="card">
+      <div class="card-head"><span class="card-title">Rafraîchissement automatique</span><span class="badge b-ok">Actif</span></div>
+      <div class="stat-row"><span class="label">Intervalle</span><span class="value">60 secondes</span></div>
+      <div class="stat-row"><span class="label">Widgets mis à jour</span><span class="value">Finance, NS, Équipe</span></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><span class="card-title">Auto-escalade IA</span><span class="badge b-ok">Actif</span></div>
+      <div class="stat-row"><span class="label">Seuil Pro</span><span class="value">&gt;800 car. ou mot-clé Pro</span></div>
+      <div class="stat-row"><span class="label">Niveau gratuit</span><span class="value">Groq / Gemini Flash / Ollama</span></div>
+    </div>
+  </div>
+
+  <!-- ── 10. Memory & Settings ── -->
+  <div class="page" id="page-mem">
+    <div class="page-toolbar">
+      <div class="page-title">Mémoire &amp; Paramètres</div>
+    </div>
+    <div class="sh">Thème</div>
+    <div class="card">
+      <div class="brow">
+        <button class="btn btn-g btn-sm" id="themeLight">☀️ Clair</button>
+        <button class="btn btn-g btn-sm" id="themeDark">🌙 Sombre</button>
+      </div>
+    </div>
+    <div class="sh">Langues actives</div>
+    <div class="card">
+      <div id="langPicker">
+        <span class="lang-pill active" data-lang="fr">🇫🇷 Français</span>
+        <span class="lang-pill active" data-lang="en">🇬🇧 English</span>
+        <span class="lang-pill active" data-lang="ar">🇩🇿 Arabe/Darija</span>
+        <span class="lang-pill active" data-lang="uk">🇺🇦 Ukrainien</span>
+        <span class="lang-pill active" data-lang="ru">🇷🇺 Russe</span>
+      </div>
+    </div>
+    <div class="sh">Tokens API</div>
+    <div class="card">
+      <div class="token-row">
+        <div class="token-label">NS API Key (Ocp-Apim-Subscription-Key)</div>
+        <div class="token-input-wrap">
+          <input type="password" id="tkNS" placeholder="Clé API NS…" autocomplete="off">
+          <button class="token-save" data-key="ns">Sauver</button>
+        </div>
+      </div>
+      <div class="token-row">
+        <div class="token-label">Telegram Bot Token</div>
+        <div class="token-input-wrap">
+          <input type="password" id="tkTelegram" placeholder="123456:ABC-DEF…" autocomplete="off">
+          <button class="token-save" data-key="telegram">Sauver</button>
+        </div>
+      </div>
+      <div class="token-row">
+        <div class="token-label">LiteLLM URL</div>
+        <div class="token-input-wrap">
+          <input type="text" id="tkLiteLLM" placeholder="http://host.docker.internal:31140" autocomplete="off">
+          <button class="token-save" data-key="litellm_url">Sauver</button>
+        </div>
+      </div>
+    </div>
+    <div class="sh">Profil</div>
+    <div class="card">
+      <div class="stat-row"><span class="label">Nom</span><span class="value">Halim Belkacem</span></div>
+      <div class="stat-row"><span class="label">Localisation</span><span class="value">Arnhem, NL (Sint Janskerkstraat 94a)</span></div>
+      <div class="stat-row"><span class="label">Trajet quotidien</span><span class="value">Arnhem → Utrecht Central (Zara)</span></div>
+      <div class="stat-row"><span class="label">Projets actifs</span><span class="value">NEXORA, ForgCV, Inditex/ZARA</span></div>
+    </div>
+    <div class="sh">Données locales</div>
+    <div class="card">
+      <div class="brow">
+        <button class="btn btn-d btn-sm" id="clearAuditBtn">🗑 Effacer journal</button>
+        <button class="btn btn-g btn-sm" id="exportMemBtn">📤 Exporter</button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ══ BOTTOM TAB BAR ══ -->
+<nav class="tab-bar" id="tabBar">
+  <div class="tab active" data-page="page-cmd">
+    <span class="tab-ic">🏠</span>
+    <span class="tab-lb">Center</span>
+  </div>
+  <div class="tab" data-page="page-chat">
+    <span class="tab-ic">💬</span>
+    <span class="tab-lb">Chat</span>
+  </div>
+  <div class="tab" data-page="page-inbox">
+    <span class="tab-ic">📬</span>
+    <span class="tab-lb">Inbox</span>
+  </div>
+  <div class="tab" data-page="page-biz">
+    <span class="tab-ic">📈</span>
+    <span class="tab-lb">Growth</span>
+  </div>
+  <div class="tab" data-page="page-intel">
+    <span class="tab-ic">🌍</span>
+    <span class="tab-lb">Intel</span>
+  </div>
+  <div class="tab" data-page="page-fin">
+    <span class="tab-ic">💰</span>
+    <span class="tab-lb">Finance</span>
+  </div>
+  <div class="tab" data-page="page-work">
+    <span class="tab-ic">🏢</span>
+    <span class="tab-lb">Work</span>
+  </div>
+  <div class="tab" data-page="page-life">
+    <span class="tab-ic">🚉</span>
+    <span class="tab-lb">Life</span>
+  </div>
+  <div class="tab" data-page="page-auto">
+    <span class="tab-ic">⚙️</span>
+    <span class="tab-lb">Auto</span>
+  </div>
+  <div class="tab" data-page="page-mem">
+    <span class="tab-ic">🧠</span>
+    <span class="tab-lb">Memory</span>
+  </div>
+</nav>
+
+<!-- ══ TOAST ══ -->
+<div class="toast" id="toast"></div>
+
+<script src="/app.js"></script>
 </body>
 </html>

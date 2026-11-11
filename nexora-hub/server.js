@@ -19,8 +19,8 @@
 //      scheduling, locking and emails) into a read-only JSON cache at
 //      public/data/team-availability.json, served by handleTeamWidget below.
 
-import http from "node:http";
 import fs from "node:fs";
+import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -58,7 +58,10 @@ const PROVIDER_LABELS = {
 const PRO_BLENDED_RATE_PER_1K_TOKENS = 0.006;
 
 function estimateTokens(messages) {
-  const chars = messages.reduce((sum, m) => sum + (typeof m.content === "string" ? m.content.length : 0), 0);
+  const chars = messages.reduce(
+    (sum, m) => sum + (typeof m.content === "string" ? m.content.length : 0),
+    0,
+  );
   return Math.max(1, Math.ceil(chars / 4));
 }
 
@@ -95,8 +98,13 @@ function pickModel(messages, tierHint) {
   if (tierHint === "free") return { model: "nexora-free", tier: "free" };
 
   const lastUser = [...messages].reverse().find((m) => m.role === "user");
-  const text = (lastUser && typeof lastUser.content === "string" ? lastUser.content : "").toLowerCase();
-  const totalLength = messages.reduce((sum, m) => sum + (typeof m.content === "string" ? m.content.length : 0), 0);
+  const text = (
+    lastUser && typeof lastUser.content === "string" ? lastUser.content : ""
+  ).toLowerCase();
+  const totalLength = messages.reduce(
+    (sum, m) => sum + (typeof m.content === "string" ? m.content.length : 0),
+    0,
+  );
 
   const hitsKeyword = PRO_KEYWORDS.some((kw) => text.includes(kw));
   const isLong = totalLength > PRO_LENGTH_THRESHOLD;
@@ -213,7 +221,10 @@ async function handleChat(req, res) {
   if (!upstream.ok || !upstream.body) {
     const detail = await upstream.text().catch(() => "");
     state.lastError = `LiteLLM responded ${upstream.status}`;
-    return sendJSON(res, upstream.status || 502, { error: "LiteLLM error", detail: detail.slice(0, 2000) });
+    return sendJSON(res, upstream.status || 502, {
+      error: "LiteLLM error",
+      detail: detail.slice(0, 2000),
+    });
   }
 
   state.lastError = null;
@@ -258,13 +269,21 @@ async function fetchJSON(url, init, timeoutMs = 6000) {
 async function handleGithubWidget(req, res, query) {
   const user = query.get("user") || "openclaw";
   try {
-    const repos = await fetchJSON(`https://api.github.com/users/${encodeURIComponent(user)}/repos?sort=updated&per_page=6`, {
-      headers: { "User-Agent": "nexora-hub", Accept: "application/vnd.github+json" },
-    });
+    const repos = await fetchJSON(
+      `https://api.github.com/users/${encodeURIComponent(user)}/repos?sort=updated&per_page=6`,
+      {
+        headers: { "User-Agent": "nexora-hub", Accept: "application/vnd.github+json" },
+      },
+    );
     sendJSON(res, 200, {
       demo: false,
       user,
-      repos: repos.map((r) => ({ name: r.name, stars: r.stargazers_count, url: r.html_url, updatedAt: r.updated_at })),
+      repos: repos.map((r) => ({
+        name: r.name,
+        stars: r.stargazers_count,
+        url: r.html_url,
+        updatedAt: r.updated_at,
+      })),
     });
   } catch (err) {
     sendJSON(res, 200, {
@@ -282,9 +301,12 @@ async function handleGithubWidget(req, res, query) {
 async function handleRedditWidget(req, res, query) {
   const sub = query.get("sub") || "technology";
   try {
-    const json = await fetchJSON(`https://www.reddit.com/r/${encodeURIComponent(sub)}/hot.json?limit=5`, {
-      headers: { "User-Agent": "nexora-hub/0.1 (dashboard widget)" },
-    });
+    const json = await fetchJSON(
+      `https://www.reddit.com/r/${encodeURIComponent(sub)}/hot.json?limit=5`,
+      {
+        headers: { "User-Agent": "nexora-hub/0.1 (dashboard widget)" },
+      },
+    );
     const posts = (json?.data?.children || []).map((c) => ({
       title: c.data.title,
       url: `https://reddit.com${c.data.permalink}`,
@@ -296,16 +318,18 @@ async function handleRedditWidget(req, res, query) {
       demo: true,
       sub,
       note: `Live Reddit fetch failed (${err.message}); showing placeholder data.`,
-      posts: [
-        { title: "(placeholder) r/" + sub + " is quiet right now", url: "#", score: 0 },
-      ],
+      posts: [{ title: "(placeholder) r/" + sub + " is quiet right now", url: "#", score: 0 }],
     });
   }
 }
 
 async function handleFinanceWidget(req, res, query) {
   const symbolsParam = query.get("symbols") || "AAPL,BTC-USD";
-  const symbols = symbolsParam.split(",").map((s) => s.trim()).filter(Boolean).slice(0, 10);
+  const symbols = symbolsParam
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 10);
   try {
     const json = await fetchJSON(
       `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbols.join(","))}`,
@@ -318,7 +342,8 @@ async function handleFinanceWidget(req, res, query) {
       // Coerce to null/0 here so the frontend never has to interpolate a
       // raw `undefined` into the DOM.
       price: typeof q.regularMarketPrice === "number" ? q.regularMarketPrice : null,
-      changePercent: typeof q.regularMarketChangePercent === "number" ? q.regularMarketChangePercent : 0,
+      changePercent:
+        typeof q.regularMarketChangePercent === "number" ? q.regularMarketChangePercent : 0,
       currency: q.currency || "USD",
     }));
     if (quotes.length === 0) throw new Error("empty result");
@@ -340,7 +365,11 @@ function handleSocialWidget(req, res) {
     demo: true,
     platforms: [
       { platform: "Telegram", connected: false, note: "Connect TELEGRAM_BOT_TOKEN to enable." },
-      { platform: "WhatsApp", connected: false, note: "Requires WhatsApp Business API credentials." },
+      {
+        platform: "WhatsApp",
+        connected: false,
+        note: "Requires WhatsApp Business API credentials.",
+      },
       { platform: "Instagram", connected: false, note: "Requires Meta Graph API token." },
       { platform: "LinkedIn", connected: false, note: "Requires LinkedIn OAuth token." },
     ],
@@ -348,15 +377,7 @@ function handleSocialWidget(req, res) {
 }
 
 const TEAM_CACHE_PATH = path.join(PUBLIC_DIR, "data", "team-availability.json");
-const DAY_NAMES = [
-  "Sunday",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-];
+const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 function parseISODate(value) {
   const [y, m, d] = value.split("-").map(Number);
@@ -377,10 +398,18 @@ function computeVacationStatus(approvedWindows, today) {
     }
   }
   if (active) {
-    return { status: "active", window: active, daysRemaining: Math.ceil((parseISODate(active.to) - today) / 86400000) };
+    return {
+      status: "active",
+      window: active,
+      daysRemaining: Math.ceil((parseISODate(active.to) - today) / 86400000),
+    };
   }
   if (next) {
-    return { status: "upcoming", window: next, daysUntil: Math.ceil((parseISODate(next.from) - today) / 86400000) };
+    return {
+      status: "upcoming",
+      window: next,
+      daysUntil: Math.ceil((parseISODate(next.from) - today) / 86400000),
+    };
   }
   return { status: "none", window: null };
 }
@@ -402,7 +431,9 @@ async function handleTeamWidget(req, res) {
 
     const withPercent = roster.filter((e) => typeof e.availabilityPercent === "number");
     const weeklyAveragePercent = withPercent.length
-      ? Math.round(withPercent.reduce((sum, e) => sum + e.availabilityPercent, 0) / withPercent.length)
+      ? Math.round(
+          withPercent.reduce((sum, e) => sum + e.availabilityPercent, 0) / withPercent.length,
+        )
       : null;
 
     const vacationStatus = computeVacationStatus(cache.vacationPlan?.approvedWindows, today);
@@ -439,6 +470,83 @@ async function handleTeamWidget(req, res) {
 }
 
 // ---------------------------------------------------------------------------
+// NS train departures widget (station ARN → Utrecht Centraal)
+// ---------------------------------------------------------------------------
+function generateDemoTrains() {
+  const now = new Date();
+  return [5, 25, 50, 75, 95].map((offsetMin) => {
+    const t = new Date(now.getTime() + offsetMin * 60000);
+    return {
+      plannedDepartureTime: t.toISOString(),
+      direction: "Utrecht Centraal",
+      plannedTrack: String(Math.floor(Math.random() * 8) + 1),
+      delayMinutes: 0,
+    };
+  });
+}
+
+async function handleNSWidget(req, res) {
+  const NS_KEY = process.env.NS_API_KEY;
+  if (!NS_KEY) {
+    return sendJSON(res, 200, {
+      demo: true,
+      note: "NS API key not configured. Set NS_API_KEY env variable.",
+      departures: generateDemoTrains(),
+      disruptions: [],
+    });
+  }
+  try {
+    const [depResp, disResp] = await Promise.all([
+      fetchJSON(
+        "https://gateway.apiportal.ns.nl/reisinformatie-api/api/v3/departures?station=ARN&maxJourneys=10",
+        { headers: { "Ocp-Apim-Subscription-Key": NS_KEY } },
+      ),
+      fetchJSON(
+        "https://gateway.apiportal.ns.nl/reisinformatie-api/api/v3/disruptions/station/ARN",
+        { headers: { "Ocp-Apim-Subscription-Key": NS_KEY } },
+      ).catch(() => ({ payload: [] })),
+    ]);
+    const all = depResp?.payload || [];
+    const utrechtBound = all.filter(
+      (d) =>
+        (d.direction || "").toLowerCase().includes("utrecht") ||
+        (d.routeStations || []).some((s) => (s.mediumName || "").toLowerCase().includes("utrecht")),
+    );
+    sendJSON(res, 200, {
+      demo: false,
+      station: "ARN",
+      departures: (utrechtBound.length ? utrechtBound : all).slice(0, 10),
+      disruptions: (disResp?.payload || []).slice(0, 5),
+    });
+  } catch (err) {
+    sendJSON(res, 200, {
+      demo: true,
+      note: `NS API fetch failed (${err.message}). Check your NS_API_KEY.`,
+      departures: generateDemoTrains(),
+      disruptions: [],
+    });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Open-Meteo weather widget (Arnhem)
+// ---------------------------------------------------------------------------
+async function handleWeatherWidget(req, res) {
+  try {
+    const data = await fetchJSON(
+      "https://api.open-meteo.com/v1/forecast?latitude=51.9851&longitude=5.8987&current_weather=true&hourly=temperature_2m,precipitation_probability&timezone=Europe%2FAmsterdam&forecast_days=1",
+    );
+    sendJSON(res, 200, { demo: false, ...data });
+  } catch (err) {
+    sendJSON(res, 200, {
+      demo: true,
+      note: `Weather fetch failed (${err.message})`,
+      current_weather: { temperature: null, windspeed: null, weathercode: 0 },
+    });
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Router
 // ---------------------------------------------------------------------------
 const server = http.createServer(async (req, res) => {
@@ -468,6 +576,12 @@ const server = http.createServer(async (req, res) => {
     }
     if (url.pathname === "/api/widgets/team") {
       return await handleTeamWidget(req, res);
+    }
+    if (url.pathname === "/api/widgets/ns") {
+      return await handleNSWidget(req, res);
+    }
+    if (url.pathname === "/api/widgets/weather") {
+      return await handleWeatherWidget(req, res);
     }
 
     return serveStatic(req, res);
