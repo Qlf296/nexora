@@ -1,0 +1,46 @@
+version: "3.9"
+
+# NEXORA Hub — production Compose file for Hetzner VPS (Ubuntu 24.04)
+# Deploy: scp this directory to ~/Halim-AI/nexora-hub on the VPS, then:
+#   docker compose up -d --build
+#
+# The .env file is loaded automatically by Compose from the same directory.
+# Never commit .env — it is listed in .gitignore.
+
+services:
+  nexora-hub:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nexora-hub
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+    # Allows the container to reach the host's LiteLLM proxy if running locally
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3001/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    labels:
+      - "com.nexora.service=hub"
+      - "com.nexora.version=0.1.0"

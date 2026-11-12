@@ -8,8 +8,9 @@
 // Responsibilities:
 //   1. Serve the static frontend (./public).
 //   2. Route chat requests to the best available AI provider:
-//        a) Direct call to a free provider (Groq, Gemini, OpenRouter,
-//           Mistral, Together.AI, Cohere) when the matching env var is set.
+//        a) Direct call to a free provider — cascade order:
+//             Groq → Gemini → OpenRouter → NVIDIA NIM → Cohere
+//           Activated when the matching env var is set in .env.
 //        b) Fallback to the LiteLLM proxy (nexora-free / nexora-pro alias).
 //      Smart cascading: if a free provider fails, the next one is tried
 //      automatically. Pro (Claude) is used for complex tasks or explicit request.
@@ -97,17 +98,26 @@ const PRO_KEYWORDS = [
 const PRO_LENGTH_THRESHOLD = 800;
 
 // ---------------------------------------------------------------------------
-// Free / direct provider config — all expose an OpenAI-compatible
-// /v1/chat/completions endpoint, so the same streaming code works for all.
-// Set the matching env var to activate a provider; unset = skipped silently.
+// Authorized free provider pool — cascade order:
+//   1. Groq       (ultra-fast, simple tasks)
+//   2. Gemini     (complex / analytical / long context)
+//   3. OpenRouter (100+ models, free tier)
+//   4. NVIDIA NIM (Llama 3.3 70B on NVIDIA Inference Microservice)
+//   5. Cohere     (RAG / enterprise, 20 req/min free)
+//
+// All five expose an OpenAI-compatible /v1/chat/completions endpoint.
+// Set the matching env var (see .env) to activate a provider;
+// unset = skipped silently.
 // ---------------------------------------------------------------------------
 const FREE_PROVIDERS = [
   {
     id: "groq",
-    name: "Groq — LLaMA 3.3 70B",
+    // Model: qwen/qwen3.8-27b (confirmed active on Groq free tier).
+    // llama-3.3-70b-versatile and llama3-70b-8192 are decommissioned.
+    name: "Groq — Qwen 3.8 27B",
     envKey: "GROQ_API_KEY",
     baseUrl: "https://api.groq.com/openai/v1",
-    model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
+    model: process.env.GROQ_MODEL || "qwen/qwen3.8-27b",
     tier: "free",
     specialty: "⚡ Ultra-rapide · conversations · FR/EN/AR/Darija",
     freeLimit: "14 400 req/jour · 6 000 tokens/min",
@@ -116,22 +126,27 @@ const FREE_PROVIDERS = [
   },
   {
     id: "gemini",
-    name: "Gemini Flash 2.0",
+    // Model: gemini-3.8-flash (recommended by Google for new accounts).
+    // Auth: Gemini OpenAI-compat endpoint uses Authorization: Bearer.
+    name: "Gemini 3.8 Flash",
     envKey: "GEMINI_API_KEY",
     baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
-    model: process.env.GEMINI_MODEL || "gemini-2.0-flash",
+    model: process.env.GEMINI_MODEL || "gemini-3.8-flash",
     tier: "free",
     specialty: "🧠 Multimodal · analyse · contexte 1 M tokens",
     freeLimit: "1 500 req/jour · 1 M tokens/min",
     getKey: "https://aistudio.google.com/app/apikey",
-    authHeader: (key) => ({ "x-goog-api-key": key }),
+    // Google's OpenAI-compat endpoint uses Bearer, NOT x-goog-api-key.
+    authHeader: (key) => ({ Authorization: `Bearer ${key}` }),
   },
   {
     id: "openrouter",
-    name: "OpenRouter (Llama 3.3 free)",
+    // Free tier note: free models on OpenRouter are shared-pool and may be
+    // rate-limited or reasoning-only. The cascade handles both gracefully.
+    name: "OpenRouter (Gemma 4 31B free)",
     envKey: "OPENROUTER_API_KEY",
     baseUrl: "https://openrouter.ai/api/v1",
-    model: process.env.OPENROUTER_MODEL || "meta-llama/llama-3.3-70b-instruct:free",
+    model: process.env.OPENROUTER_MODEL || "google/gemma-4-31b-it:free",
     tier: "free",
     specialty: "🔀 Accès +100 modèles · fallback intelligent",
     freeLimit: "20 req/min sur modèles gratuits",
@@ -143,27 +158,18 @@ const FREE_PROVIDERS = [
     }),
   },
   {
-    id: "mistral",
-    name: "Mistral Small",
-    envKey: "MISTRAL_API_KEY",
-    baseUrl: "https://api.mistral.ai/v1",
-    model: process.env.MISTRAL_MODEL || "mistral-small-latest",
+    id: "nvidia",
+    // NVIDIA NIM requires models to be activated in your account at
+    // build.nvidia.com before the API will route them successfully.
+    // The key is valid; activate models in the NVIDIA console if 404s occur.
+    name: "NVIDIA NIM — Nemotron 70B",
+    envKey: "NVIDIA_API_KEY",
+    baseUrl: "https://integrate.api.nvidia.com/v1",
+    model: process.env.NVIDIA_MODEL || "nvidia/llama-3.1-nemotron-70b-instruct",
     tier: "free",
-    specialty: "🇪🇺 Code · multilingual EU · vie privée",
-    freeLimit: "1 req/s · 500 K tokens/mois (essai)",
-    getKey: "https://console.mistral.ai",
-    authHeader: (key) => ({ Authorization: `Bearer ${key}` }),
-  },
-  {
-    id: "together",
-    name: "Together.AI",
-    envKey: "TOGETHER_API_KEY",
-    baseUrl: "https://api.together.xyz/v1",
-    model: process.env.TOGETHER_MODEL || "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
-    tier: "free",
-    specialty: "🔓 Open-source · fine-tuning · $1 crédit offert",
-    freeLimit: "$1 crédit à l'inscription",
-    getKey: "https://api.together.xyz/settings/api-keys",
+    specialty: "🟢 GPU accéléré · NVIDIA Inference Microservice",
+    freeLimit: "1 000 req d'essai (crédit NIM gratuit)",
+    getKey: "https://build.nvidia.com/explore/discover",
     authHeader: (key) => ({ Authorization: `Bearer ${key}` }),
   },
   {
@@ -229,9 +235,10 @@ function pickProvider(messages, tierHint) {
   if (tierHint === "free") return { type: "direct", provider: configured[0], tier: "free" };
 
   // Auto: prefer Gemini/OpenRouter for complex, Groq for fast/simple
+  // Authorized pool: Groq · Gemini · OpenRouter · NVIDIA NIM · Cohere
   const pref = isComplex
-    ? ["gemini", "openrouter", "mistral", "groq", "together", "cohere"]
-    : ["groq", "gemini", "openrouter", "mistral", "together", "cohere"];
+    ? ["gemini", "openrouter", "nvidia", "groq", "cohere"]
+    : ["groq", "gemini", "openrouter", "nvidia", "cohere"];
   for (const id of pref) {
     const p = configured.find((c) => c.id === id);
     if (p) return { type: "direct", provider: p, tier: "free" };
@@ -383,22 +390,61 @@ async function handleChat(req, res) {
     state.estimatedCostUSD += (estimateTokens(messages) / 1000) * PRO_BLENDED_RATE_PER_1K_TOKENS;
   }
 
+  // HTTP header values must be ASCII printable — strip any non-ASCII chars
+  // (e.g. em-dashes in display names) before setting the header.
+  const safeProviderName = used.name.replace(/[^\x20-\x7E]/g, "-").trim();
   res.writeHead(200, {
     "Content-Type": "text/event-stream; charset=utf-8",
     "Cache-Control": "no-cache",
     Connection: "keep-alive",
     "X-Nexora-Model": used.model,
     "X-Nexora-Tier": used.tier,
-    "X-Nexora-Provider": used.name,
+    "X-Nexora-Provider": safeProviderName,
   });
 
+  // Stream through, transforming SSE events on the fly.
+  // Some providers (OpenRouter reasoning models, NVIDIA Nemotron) return
+  // delta.content = null with the actual text in delta.reasoning.
+  // We remap reasoning → content so the frontend receives a normal stream.
   const reader = upstream.body.getReader();
+  const decoder = new TextDecoder();
+  let sseBuffer = "";
   try {
     // eslint-disable-next-line no-constant-condition
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-      res.write(value);
+      sseBuffer += decoder.decode(value, { stream: true });
+      const lines = sseBuffer.split("\n");
+      sseBuffer = lines.pop() ?? ""; // keep the incomplete last fragment
+      let out = "";
+      for (const line of lines) {
+        if (!line.startsWith("data: ")) {
+          out += line + "\n";
+          continue;
+        }
+        const payload = line.slice(6).trim();
+        if (payload === "[DONE]") {
+          out += line + "\n";
+          continue;
+        }
+        try {
+          const evt = JSON.parse(payload);
+          const delta = evt?.choices?.[0]?.delta;
+          if (delta && delta.content === null && delta.reasoning) {
+            // Promote reasoning text to content for think-only models
+            delta.content = delta.reasoning;
+            delete delta.reasoning;
+            delete delta.reasoning_details;
+            out += `data: ${JSON.stringify(evt)}\n`;
+          } else {
+            out += line + "\n";
+          }
+        } catch {
+          out += line + "\n";
+        }
+      }
+      if (out) res.write(out);
     }
   } catch (err) {
     state.lastError = `Stream interrupted: ${err.message}`;
