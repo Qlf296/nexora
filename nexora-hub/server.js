@@ -99,15 +99,18 @@ const PRO_LENGTH_THRESHOLD = 800;
 
 // ---------------------------------------------------------------------------
 // Authorized free provider pool — cascade order:
-//   1. Groq       (ultra-fast, simple tasks)
-//   2. Gemini     (complex / analytical / long context)
-//   3. OpenRouter (100+ models, free tier)
-//   4. NVIDIA NIM (Llama 3.3 70B on NVIDIA Inference Microservice)
-//   5. Cohere     (RAG / enterprise, 20 req/min free)
+//   1. Groq       (ultra-fast, simple tasks)                   enabled: true
+//   2. Gemini     (complex / analytical / long context)        enabled: true
+//   3. OpenRouter (100+ models, shared free pool)              enabled: true
+//   4. NVIDIA NIM (Nemotron 70B, NIM account required)         enabled: false ← STANDBY
+//   5. Cohere     (RAG / enterprise, 20 req/min free)          enabled: true
 //
 // All five expose an OpenAI-compatible /v1/chat/completions endpoint.
-// Set the matching env var (see .env) to activate a provider;
-// unset = skipped silently.
+// Rules:
+//   - Set the matching env var (see .env) to supply the API key.
+//   - Set enabled: false to put a provider in STANDBY — the router skips it
+//     but the /api/router/providers endpoint still surfaces it with its badge.
+//   - Override with env var NEXORA_ENABLE_NVIDIA=true to force NVIDIA on.
 // ---------------------------------------------------------------------------
 const FREE_PROVIDERS = [
   {
@@ -119,6 +122,7 @@ const FREE_PROVIDERS = [
     baseUrl: "https://api.groq.com/openai/v1",
     model: process.env.GROQ_MODEL || "qwen/qwen3.8-27b",
     tier: "free",
+    enabled: true,
     specialty: "⚡ Ultra-rapide · conversations · FR/EN/AR/Darija",
     freeLimit: "14 400 req/jour · 6 000 tokens/min",
     getKey: "https://console.groq.com/keys",
@@ -126,28 +130,36 @@ const FREE_PROVIDERS = [
   },
   {
     id: "gemini",
-    // Model: gemini-3.8-flash (recommended by Google for new accounts).
-    // Auth: Gemini OpenAI-compat endpoint uses Authorization: Bearer.
-    name: "Gemini 3.8 Flash",
+    // Model: gemini-3.5-flash-lite (confirmed working for new API accounts).
+    //   - gemini-2.0-flash / gemini-2.5-flash → "not available to new users"
+    //   - gemini-3.8-flash → does not exist (causes 15s timeout)
+    //   - gemini-3.5-flash-lite → ✅ confirmed working, fast, free quota
+    // Auth: Gemini OpenAI-compat endpoint MUST use Authorization: Bearer,
+    //       NOT x-goog-api-key (that header is rejected on the /v1beta/openai path).
+    name: "Gemini 3.5 Flash Lite",
     envKey: "GEMINI_API_KEY",
     baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
-    model: process.env.GEMINI_MODEL || "gemini-3.8-flash",
+    model: process.env.GEMINI_MODEL || "gemini-3.5-flash-lite",
     tier: "free",
-    specialty: "🧠 Multimodal · analyse · contexte 1 M tokens",
-    freeLimit: "1 500 req/jour · 1 M tokens/min",
+    enabled: true,
+    specialty: "🧠 Multimodal · analyse · contexte long · FR/EN",
+    freeLimit: "1 500 req/jour · 1 M tokens/min (quota Google AI Studio)",
     getKey: "https://aistudio.google.com/app/apikey",
-    // Google's OpenAI-compat endpoint uses Bearer, NOT x-goog-api-key.
     authHeader: (key) => ({ Authorization: `Bearer ${key}` }),
   },
   {
     id: "openrouter",
-    // Free tier note: free models on OpenRouter are shared-pool and may be
-    // rate-limited or reasoning-only. The cascade handles both gracefully.
-    name: "OpenRouter (Gemma 4 31B free)",
+    // Free tier note: OpenRouter free models as of Nov 2026 are mostly reasoning-only
+    // (delta.content = null, delta.reasoning = "..."). The SSE transformer in handleChat
+    // remaps delta.reasoning / delta.reasoning_content → delta.content automatically.
+    // Google models on the shared pool are frequently rate-limited (429).
+    // nvidia/nemotron-3-ultra-550b-a55b:free is confirmed available and fast.
+    name: "OpenRouter (Nemotron 550B free)",
     envKey: "OPENROUTER_API_KEY",
     baseUrl: "https://openrouter.ai/api/v1",
-    model: process.env.OPENROUTER_MODEL || "google/gemma-4-31b-it:free",
+    model: process.env.OPENROUTER_MODEL || "nvidia/nemotron-3-ultra-550b-a55b:free",
     tier: "free",
+    enabled: true,
     specialty: "🔀 Accès +100 modèles · fallback intelligent",
     freeLimit: "20 req/min sur modèles gratuits",
     getKey: "https://openrouter.ai/keys",
@@ -159,14 +171,19 @@ const FREE_PROVIDERS = [
   },
   {
     id: "nvidia",
-    // NVIDIA NIM requires models to be activated in your account at
-    // build.nvidia.com before the API will route them successfully.
-    // The key is valid; activate models in the NVIDIA console if 404s occur.
+    // STANDBY — enabled: false by default.
+    // NVIDIA NIM requires each model to be manually activated at
+    // build.nvidia.com before the API will route it successfully.
+    // Until activation the API returns 404 "Function not found for account",
+    // which would stall the cascade. Enable via NEXORA_ENABLE_NVIDIA=true or
+    // by setting enabled: true below after activating models in the console.
     name: "NVIDIA NIM — Nemotron 70B",
     envKey: "NVIDIA_API_KEY",
     baseUrl: "https://integrate.api.nvidia.com/v1",
     model: process.env.NVIDIA_MODEL || "nvidia/llama-3.1-nemotron-70b-instruct",
     tier: "free",
+    enabled: process.env.NEXORA_ENABLE_NVIDIA === "true",
+    status: "STANDBY",
     specialty: "🟢 GPU accéléré · NVIDIA Inference Microservice",
     freeLimit: "1 000 req d'essai (crédit NIM gratuit)",
     getKey: "https://build.nvidia.com/explore/discover",
@@ -179,6 +196,7 @@ const FREE_PROVIDERS = [
     baseUrl: "https://api.cohere.com/compatibility/v1",
     model: process.env.COHERE_MODEL || "command-r-plus-08-2024",
     tier: "free",
+    enabled: true,
     specialty: "🔍 RAG · recherche · entreprise",
     freeLimit: "20 req/min (clé d'essai)",
     getKey: "https://dashboard.cohere.com/api-keys",
@@ -186,8 +204,11 @@ const FREE_PROVIDERS = [
   },
 ];
 
+// Returns providers that are both configured (env key present) and enabled.
+// STANDBY providers (enabled: false) are excluded from routing but are still
+// surfaced by /api/router/providers with a "STANDBY" badge.
 function getConfiguredFreeProviders() {
-  return FREE_PROVIDERS.filter((p) => !!process.env[p.envKey]);
+  return FREE_PROVIDERS.filter((p) => p.enabled !== false && !!process.env[p.envKey]);
 }
 
 // pickModel kept as internal LiteLLM-only helper
@@ -431,10 +452,15 @@ async function handleChat(req, res) {
         try {
           const evt = JSON.parse(payload);
           const delta = evt?.choices?.[0]?.delta;
-          if (delta && delta.content === null && delta.reasoning) {
-            // Promote reasoning text to content for think-only models
-            delta.content = delta.reasoning;
+          // Promote reasoning → content for think-only / reasoning models.
+          // Handles both naming conventions:
+          //   - delta.reasoning        (OpenRouter, NVIDIA Nemotron)
+          //   - delta.reasoning_content (some Cohere variants, DeepSeek)
+          const reasoningText = delta?.reasoning || delta?.reasoning_content;
+          if (delta && delta.content === null && reasoningText) {
+            delta.content = reasoningText;
             delete delta.reasoning;
+            delete delta.reasoning_content;
             delete delta.reasoning_details;
             out += `data: ${JSON.stringify(evt)}\n`;
           } else {
@@ -753,16 +779,27 @@ async function handleWeatherWidget(req, res) {
 // ---------------------------------------------------------------------------
 function handleProvidersWidget(req, res) {
   sendJSON(res, 200, {
-    providers: FREE_PROVIDERS.map((p) => ({
-      id: p.id,
-      name: p.name,
-      configured: !!process.env[p.envKey],
-      envKey: p.envKey,
-      tier: p.tier,
-      specialty: p.specialty,
-      freeLimit: p.freeLimit,
-      getKey: p.getKey,
-    })),
+    providers: FREE_PROVIDERS.map((p) => {
+      const hasKey = !!process.env[p.envKey];
+      const isEnabled = p.enabled !== false;
+      // Status badge logic:
+      //   STANDBY  — provider disabled in config (key may or may not be set)
+      //   ACTIVE   — key present + enabled → participates in routing
+      //   NOT_CONFIGURED — enabled but no key set
+      const routerStatus = !isEnabled ? "STANDBY" : hasKey ? "ACTIVE" : "NOT_CONFIGURED";
+      return {
+        id: p.id,
+        name: p.name,
+        configured: hasKey,
+        enabled: isEnabled,
+        routerStatus,
+        envKey: p.envKey,
+        tier: p.tier,
+        specialty: p.specialty,
+        freeLimit: p.freeLimit,
+        getKey: p.getKey,
+      };
+    }),
     litellm: {
       id: "litellm",
       name: "Claude Sonnet (via LiteLLM)",
