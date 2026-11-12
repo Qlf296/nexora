@@ -392,38 +392,129 @@ async function renderCmd() {
 
 // ══ COMMUNICATIONS / INBOX ══════════════════════════════════════════════
 
+// Open (or focus) a named window so the account "stays always open"
+function openAccount(url, windowName) {
+  const w = window.open(url, windowName, "noopener");
+  if (w) w.focus();
+}
+
 function renderInbox() {
-  const platforms = [
+  // ── Messaging launch pads (Telegram ×2, WhatsApp ×2, Instagram ×2) ──
+  const messaging = [
     {
       ic: "✈️",
       name: "Telegram",
-      note: "Connecter TELEGRAM_BOT_TOKEN dans Mémoire → Tokens",
-      on: false,
+      slots: [
+        {
+          label: "Compte 1",
+          url: NXR.settings["tgram1_url"] || "https://web.telegram.org",
+          win: "nexora-tgram-1",
+        },
+        {
+          label: "Compte 2",
+          url: NXR.settings["tgram2_url"] || "https://web.telegram.org",
+          win: "nexora-tgram-2",
+        },
+      ],
     },
-    { ic: "📱", name: "WhatsApp", note: "WhatsApp Business API credentials requis", on: false },
-    { ic: "📸", name: "Instagram", note: "Meta Graph API token requis", on: false },
-    { ic: "💼", name: "LinkedIn", note: "LinkedIn OAuth token requis", on: false },
+    {
+      ic: "📱",
+      name: "WhatsApp",
+      slots: [
+        {
+          label: "Compte 1",
+          url: NXR.settings["wa1_url"] || "https://web.whatsapp.com",
+          win: "nexora-wa-1",
+        },
+        {
+          label: "Compte 2",
+          url: NXR.settings["wa2_url"] || "https://web.whatsapp.com",
+          win: "nexora-wa-2",
+        },
+      ],
+    },
+    {
+      ic: "📸",
+      name: "Instagram",
+      slots: [
+        {
+          label: "Compte 1",
+          url: NXR.settings["insta1_url"] || "https://www.instagram.com",
+          win: "nexora-insta-1",
+        },
+        {
+          label: "Compte 2",
+          url: NXR.settings["insta2_url"] || "https://www.instagram.com",
+          win: "nexora-insta-2",
+        },
+      ],
+    },
   ];
 
-  const platBox = el("inboxPlatforms");
-  if (platBox) {
-    platBox.innerHTML = platforms
+  const lp = el("inboxLaunchPads");
+  if (lp) {
+    lp.innerHTML = messaging
       .map(
         (p) => `
-      <div class="connect-card">
-        <span class="connect-icon">${p.ic}</span>
-        <div class="connect-info">
-          <div class="connect-name">${esc(p.name)}</div>
-          <div class="connect-note">${esc(p.note)}</div>
+      <div class="launchpad-card">
+        <div class="launchpad-head">
+          <span class="launchpad-head-icon">${p.ic}</span>
+          ${esc(p.name)}
         </div>
-        <div class="connect-status">
-          <span class="sdot ${p.on ? "sdot-on" : "sdot-off"}"></span>
+        <div class="launchpad-slots">
+          ${p.slots
+            .map(
+              (s) => `
+          <div class="launchpad-slot">
+            <div>
+              <div class="launchpad-label">${esc(s.label)}</div>
+              <div class="launchpad-url">${esc(s.url)}</div>
+            </div>
+            <button class="launchpad-btn" data-url="${esc(s.url)}" data-win="${esc(s.win)}">
+              Ouvrir ↗
+            </button>
+          </div>`,
+            )
+            .join("")}
         </div>
       </div>`,
       )
       .join("");
+
+    lp.querySelectorAll(".launchpad-btn[data-url]").forEach((btn) => {
+      btn.addEventListener("click", () => openAccount(btn.dataset.url, btn.dataset.win));
+    });
   }
 
+  // ── Social networks ──
+  const socials = [
+    { ic: "💼", name: "LinkedIn", url: "https://www.linkedin.com", win: "nexora-linkedin" },
+    { ic: "🔴", name: "Reddit", url: "https://www.reddit.com", win: "nexora-reddit" },
+    { ic: "✖️", name: "X / Twitter", url: "https://x.com", win: "nexora-x" },
+  ];
+
+  const sb = el("inboxSocials");
+  if (sb) {
+    sb.innerHTML =
+      `<div class="card">` +
+      socials
+        .map(
+          (s) => `
+      <div class="list-row">
+        <span>${s.ic} ${esc(s.name)}</span>
+        <button class="launchpad-btn" style="padding:5px 11px;font-size:11px"
+          data-url="${esc(s.url)}" data-win="${esc(s.win)}">Ouvrir ↗</button>
+      </div>`,
+        )
+        .join("") +
+      `</div>`;
+
+    sb.querySelectorAll(".launchpad-btn[data-url]").forEach((btn) => {
+      btn.addEventListener("click", () => openAccount(btn.dataset.url, btn.dataset.win));
+    });
+  }
+
+  // ── Approval workflow ──
   const approvalBox = el("inboxApprovalSettings");
   if (approvalBox) {
     approvalBox.innerHTML = `
@@ -442,6 +533,59 @@ function renderInbox() {
           <div class="approval-msg">Accusés de réception routiniers à faible risque sans intervention humaine.</div>
         </div>
       </div>`;
+  }
+}
+
+// ══ FREE AI PROVIDERS (Settings) ════════════════════════════════════════
+
+async function renderProviders() {
+  const box = el("aiProvidersCard");
+  if (!box) return;
+  try {
+    const data = await apiFetch("/api/router/providers");
+    const all = [...(data.providers || []), data.litellm].filter(Boolean);
+    box.innerHTML =
+      all
+        .map((p) => {
+          const okBadge = p.configured
+            ? `<span class="badge b-ok" style="font-size:9px">✓ Actif</span>`
+            : `<span class="badge b-off" style="font-size:9px">Non configuré</span>`;
+          const tierBadge =
+            p.tier === "pro"
+              ? `<span class="badge b-w" style="font-size:9px">Pro</span>`
+              : `<span class="badge b-live" style="font-size:9px">Gratuit</span>`;
+          return `
+        <div class="provider-row">
+          <div class="provider-info">
+            <div class="provider-name">${esc(p.name)}</div>
+            <div class="provider-meta">${esc(p.specialty || "")}</div>
+            <div class="provider-meta" style="margin-top:2px">${esc(p.freeLimit || "")}</div>
+            ${
+              p.envKey
+                ? `<div class="provider-meta" style="margin-top:4px">Env : <span class="provider-env">${esc(p.envKey)}</span></div>`
+                : ""
+            }
+          </div>
+          <div class="provider-actions">
+            ${okBadge} ${tierBadge}
+            ${
+              p.getKey
+                ? `<a href="${esc(p.getKey)}" target="_blank" rel="noopener" class="provider-link">Obtenir clé →</a>`
+                : ""
+            }
+          </div>
+        </div>`;
+        })
+        .join("") +
+      `<div class="alert a-info" style="margin-top:12px;font-size:11.5px;margin-bottom:0">
+        <span class="ai">💡</span>
+        <span>Ajoutez la variable d'environnement au démarrage du serveur :
+        <br><code style="font-size:10px">GROQ_API_KEY=gsk_... node server.js</code>
+        <br>NEXORA cascade automatiquement : Groq → Gemini → OpenRouter → Mistral → LiteLLM/Claude.</span>
+      </div>`;
+  } catch (_) {
+    if (box)
+      box.innerHTML = `<div class="alert a-w"><span class="ai">⚠️</span><span>Impossible de charger le statut des fournisseurs.</span></div>`;
   }
 }
 
@@ -976,27 +1120,73 @@ function renderAuditLog() {
 // ══ SETTINGS ═════════════════════════════════════════════════════════════
 
 function renderSettings() {
+  // Local token placeholders
   if (NXR.settings["ns_key"] && el("tkNS")) el("tkNS").placeholder = "•••••••• (sauvegardé)";
   if (NXR.settings["telegram_key"] && el("tkTelegram"))
     el("tkTelegram").placeholder = "•••••••• (sauvegardé)";
   if (NXR.settings["litellm_url"] && el("tkLiteLLM"))
     el("tkLiteLLM").value = NXR.settings["litellm_url"];
+
+  // Account links — restore saved URLs
+  const acctMap = {
+    tgram1_url: "tkTgram1",
+    tgram2_url: "tkTgram2",
+    wa1_url: "tkWa1",
+    wa2_url: "tkWa2",
+    insta1_url: "tkInsta1",
+    insta2_url: "tkInsta2",
+  };
+  Object.entries(acctMap).forEach(([settKey, inputId]) => {
+    const inp = el(inputId);
+    if (inp && NXR.settings[settKey]) inp.value = NXR.settings[settKey];
+  });
+
+  // Load free AI providers status
+  renderProviders();
 }
 
+// Generic token-save handler (handles both password tokens AND URL account links)
 document.querySelectorAll(".token-save").forEach((btn) => {
   btn.addEventListener("click", () => {
-    const keyMap = { ns: "tkNS", telegram: "tkTelegram", litellm_url: "tkLiteLLM" };
+    // Map data-key → input element id
+    const keyMap = {
+      ns: "tkNS",
+      telegram: "tkTelegram",
+      litellm_url: "tkLiteLLM",
+      tgram1_url: "tkTgram1",
+      tgram2_url: "tkTgram2",
+      wa1_url: "tkWa1",
+      wa2_url: "tkWa2",
+      insta1_url: "tkInsta1",
+      insta2_url: "tkInsta2",
+    };
     const inputEl = el(keyMap[btn.dataset.key]);
     if (!inputEl) return;
     const val = inputEl.value.trim();
     if (!val) return;
-    const storeKey = btn.dataset.key === "litellm_url" ? "litellm_url" : btn.dataset.key + "_key";
+
+    // For URL-type keys store the value as-is; for token keys append "_key"
+    const urlKeys = [
+      "litellm_url",
+      "tgram1_url",
+      "tgram2_url",
+      "wa1_url",
+      "wa2_url",
+      "insta1_url",
+      "insta2_url",
+    ];
+    const storeKey = urlKeys.includes(btn.dataset.key) ? btn.dataset.key : btn.dataset.key + "_key";
+
     NXR.settings[storeKey] = val;
     localStorage.setItem("nxr_settings", JSON.stringify(NXR.settings));
-    inputEl.value = "";
-    inputEl.placeholder = "•••••••• (sauvegardé)";
-    toast("✅ Token sauvegardé");
-    addAudit("🔑", `Token "${btn.dataset.key}" mis à jour`);
+
+    // For non-URL fields, mask the input after save
+    if (!urlKeys.includes(btn.dataset.key)) {
+      inputEl.value = "";
+      inputEl.placeholder = "•••••••• (sauvegardé)";
+    }
+    toast("✅ Sauvegardé");
+    addAudit("🔑", `Paramètre "${btn.dataset.key}" mis à jour`);
   });
 });
 

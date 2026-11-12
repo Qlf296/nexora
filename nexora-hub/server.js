@@ -7,9 +7,12 @@
 //
 // Responsibilities:
 //   1. Serve the static frontend (./public).
-//   2. Proxy chat requests to the LiteLLM proxy (/v1/chat/completions),
-//      picking the "nexora-free" or "nexora-pro" model alias per request
-//      (see pickModel below) and streaming the SSE response straight back.
+//   2. Route chat requests to the best available AI provider:
+//        a) Direct call to a free provider (Groq, Gemini, OpenRouter,
+//           Mistral, Together.AI, Cohere) when the matching env var is set.
+//        b) Fallback to the LiteLLM proxy (nexora-free / nexora-pro alias).
+//      Smart cascading: if a free provider fails, the next one is tried
+//      automatically. Pro (Claude) is used for complex tasks or explicit request.
 //   3. Expose lightweight read-only widget endpoints backed by free public
 //      APIs where one exists (GitHub, Reddit), with a clearly-labeled demo
 //      fallback (`demo: true`) when a live fetch fails or no free API
@@ -93,9 +96,120 @@ const PRO_KEYWORDS = [
 ];
 const PRO_LENGTH_THRESHOLD = 800;
 
+// ---------------------------------------------------------------------------
+// Free / direct provider config — all expose an OpenAI-compatible
+// /v1/chat/completions endpoint, so the same streaming code works for all.
+// Set the matching env var to activate a provider; unset = skipped silently.
+// ---------------------------------------------------------------------------
+const FREE_PROVIDERS = [
+  {
+    id: "groq",
+    name: "Groq — LLaMA 3.3 70B",
+    envKey: "GROQ_API_KEY",
+    baseUrl: "https://api.groq.com/openai/v1",
+    model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
+    tier: "free",
+    specialty: "⚡ Ultra-rapide · conversations · FR/EN/AR/Darija",
+    freeLimit: "14 400 req/jour · 6 000 tokens/min",
+    getKey: "https://console.groq.com/keys",
+    authHeader: (key) => ({ Authorization: `Bearer ${key}` }),
+  },
+  {
+    id: "gemini",
+    name: "Gemini Flash 2.0",
+    envKey: "GEMINI_API_KEY",
+    baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
+    model: process.env.GEMINI_MODEL || "gemini-2.0-flash",
+    tier: "free",
+    specialty: "🧠 Multimodal · analyse · contexte 1 M tokens",
+    freeLimit: "1 500 req/jour · 1 M tokens/min",
+    getKey: "https://aistudio.google.com/app/apikey",
+    authHeader: (key) => ({ "x-goog-api-key": key }),
+  },
+  {
+    id: "openrouter",
+    name: "OpenRouter (Llama 3.3 free)",
+    envKey: "OPENROUTER_API_KEY",
+    baseUrl: "https://openrouter.ai/api/v1",
+    model: process.env.OPENROUTER_MODEL || "meta-llama/llama-3.3-70b-instruct:free",
+    tier: "free",
+    specialty: "🔀 Accès +100 modèles · fallback intelligent",
+    freeLimit: "20 req/min sur modèles gratuits",
+    getKey: "https://openrouter.ai/keys",
+    authHeader: (key) => ({
+      Authorization: `Bearer ${key}`,
+      "HTTP-Referer": "https://nexora.local",
+      "X-Title": "NEXORA Hub",
+    }),
+  },
+  {
+    id: "mistral",
+    name: "Mistral Small",
+    envKey: "MISTRAL_API_KEY",
+    baseUrl: "https://api.mistral.ai/v1",
+    model: process.env.MISTRAL_MODEL || "mistral-small-latest",
+    tier: "free",
+    specialty: "🇪🇺 Code · multilingual EU · vie privée",
+    freeLimit: "1 req/s · 500 K tokens/mois (essai)",
+    getKey: "https://console.mistral.ai",
+    authHeader: (key) => ({ Authorization: `Bearer ${key}` }),
+  },
+  {
+    id: "together",
+    name: "Together.AI",
+    envKey: "TOGETHER_API_KEY",
+    baseUrl: "https://api.together.xyz/v1",
+    model: process.env.TOGETHER_MODEL || "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+    tier: "free",
+    specialty: "🔓 Open-source · fine-tuning · $1 crédit offert",
+    freeLimit: "$1 crédit à l'inscription",
+    getKey: "https://api.together.xyz/settings/api-keys",
+    authHeader: (key) => ({ Authorization: `Bearer ${key}` }),
+  },
+  {
+    id: "cohere",
+    name: "Cohere Command R+",
+    envKey: "COHERE_API_KEY",
+    baseUrl: "https://api.cohere.com/compatibility/v1",
+    model: process.env.COHERE_MODEL || "command-r-plus-08-2024",
+    tier: "free",
+    specialty: "🔍 RAG · recherche · entreprise",
+    freeLimit: "20 req/min (clé d'essai)",
+    getKey: "https://dashboard.cohere.com/api-keys",
+    authHeader: (key) => ({ Authorization: `Bearer ${key}` }),
+  },
+];
+
+function getConfiguredFreeProviders() {
+  return FREE_PROVIDERS.filter((p) => !!process.env[p.envKey]);
+}
+
+// pickModel kept as internal LiteLLM-only helper
 function pickModel(messages, tierHint) {
   if (tierHint === "pro") return { model: "nexora-pro", tier: "pro" };
   if (tierHint === "free") return { model: "nexora-free", tier: "free" };
+  const lastUser = [...messages].reverse().find((m) => m.role === "user");
+  const text = (
+    lastUser && typeof lastUser.content === "string" ? lastUser.content : ""
+  ).toLowerCase();
+  const totalLength = messages.reduce(
+    (sum, m) => sum + (typeof m.content === "string" ? m.content.length : 0),
+    0,
+  );
+  const hitsKeyword = PRO_KEYWORDS.some((kw) => text.includes(kw));
+  const isLong = totalLength > PRO_LENGTH_THRESHOLD;
+  if (hitsKeyword || isLong) return { model: "nexora-pro", tier: "pro" };
+  return { model: "nexora-free", tier: "free" };
+}
+
+// Smart provider selection — cascades through configured free providers;
+// falls back to LiteLLM. For complex tasks prefers Gemini > OpenRouter;
+// for simple/fast tasks prefers Groq > Gemini.
+function pickProvider(messages, tierHint) {
+  const configured = getConfiguredFreeProviders();
+
+  // Explicit "pro" → LiteLLM / Claude always
+  if (tierHint === "pro") return { type: "litellm", model: "nexora-pro", tier: "pro" };
 
   const lastUser = [...messages].reverse().find((m) => m.role === "user");
   const text = (
@@ -105,12 +219,25 @@ function pickModel(messages, tierHint) {
     (sum, m) => sum + (typeof m.content === "string" ? m.content.length : 0),
     0,
   );
+  const isComplex =
+    PRO_KEYWORDS.some((kw) => text.includes(kw)) || totalLength > PRO_LENGTH_THRESHOLD;
 
-  const hitsKeyword = PRO_KEYWORDS.some((kw) => text.includes(kw));
-  const isLong = totalLength > PRO_LENGTH_THRESHOLD;
+  // No free keys configured → old LiteLLM heuristic
+  if (configured.length === 0) return { type: "litellm", ...pickModel(messages, tierHint) };
 
-  if (hitsKeyword || isLong) return { model: "nexora-pro", tier: "pro" };
-  return { model: "nexora-free", tier: "free" };
+  // Explicit "free" → first configured free provider
+  if (tierHint === "free") return { type: "direct", provider: configured[0], tier: "free" };
+
+  // Auto: prefer Gemini/OpenRouter for complex, Groq for fast/simple
+  const pref = isComplex
+    ? ["gemini", "openrouter", "mistral", "groq", "together", "cohere"]
+    : ["groq", "gemini", "openrouter", "mistral", "together", "cohere"];
+  for (const id of pref) {
+    const p = configured.find((c) => c.id === id);
+    if (p) return { type: "direct", provider: p, tier: "free" };
+  }
+
+  return { type: "litellm", ...pickModel(messages, tierHint) };
 }
 
 // ---------------------------------------------------------------------------
@@ -171,7 +298,7 @@ function readBody(req) {
 }
 
 // ---------------------------------------------------------------------------
-// Chat proxy -> LiteLLM (/v1/chat/completions, streamed straight through)
+// Chat — cascade through direct free providers, then fall back to LiteLLM.
 // ---------------------------------------------------------------------------
 async function handleChat(req, res) {
   let parsed;
@@ -187,53 +314,82 @@ async function handleChat(req, res) {
     return sendJSON(res, 400, { error: "`messages` array is required" });
   }
 
-  const { model, tier } = pickModel(messages, parsed.tier);
+  const choice = pickProvider(messages, parsed.tier);
 
-  state.lastModel = model;
-  state.lastTier = tier;
-  state.lastProviderLabel = PROVIDER_LABELS[model];
-  if (tier === "free") {
+  // Build ordered attempts: direct provider first, LiteLLM as safety net
+  const attempts = [];
+  if (choice.type === "direct") {
+    const { provider } = choice;
+    const key = process.env[provider.envKey];
+    attempts.push({
+      name: provider.name,
+      tier: "free",
+      endpoint: `${provider.baseUrl}/chat/completions`,
+      headers: { "Content-Type": "application/json", ...provider.authHeader(key) },
+      model: provider.model,
+      label: `${provider.name} (direct)`,
+    });
+  }
+  // LiteLLM fallback — always appended
+  const llmFallback = choice.type === "litellm" ? choice : { model: "nexora-free", tier: "free" };
+  attempts.push({
+    name: "LiteLLM",
+    tier: llmFallback.tier,
+    endpoint: `${LITELLM_BASE_URL}/v1/chat/completions`,
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${LITELLM_MASTER_KEY}` },
+    model: llmFallback.model,
+    label: PROVIDER_LABELS[llmFallback.model] || llmFallback.model,
+  });
+
+  let upstream = null;
+  let used = null;
+  let lastErr = "";
+  for (const attempt of attempts) {
+    try {
+      const r = await fetch(attempt.endpoint, {
+        method: "POST",
+        headers: attempt.headers,
+        body: JSON.stringify({ model: attempt.model, messages, stream: true }),
+      });
+      if (r.ok && r.body) {
+        upstream = r;
+        used = attempt;
+        break;
+      }
+      lastErr = `${attempt.name}: HTTP ${r.status}`;
+    } catch (err) {
+      lastErr = `${attempt.name} unreachable: ${err.message}`;
+    }
+  }
+
+  if (!upstream || !used) {
+    state.lastError = lastErr || "All providers unavailable";
+    return sendJSON(res, 502, {
+      error:
+        "No AI provider could be reached. Configure a free API key in Settings or start the LiteLLM proxy.",
+      detail: lastErr,
+    });
+  }
+
+  // Update in-memory state
+  state.lastModel = used.model;
+  state.lastTier = used.tier;
+  state.lastProviderLabel = used.label;
+  state.lastError = null;
+  if (used.tier === "free") {
     state.requestsFree += 1;
   } else {
     state.requestsPro += 1;
-    const tokens = estimateTokens(messages);
-    state.estimatedCostUSD += (tokens / 1000) * PRO_BLENDED_RATE_PER_1K_TOKENS;
+    state.estimatedCostUSD += (estimateTokens(messages) / 1000) * PRO_BLENDED_RATE_PER_1K_TOKENS;
   }
 
-  let upstream;
-  try {
-    upstream = await fetch(`${LITELLM_BASE_URL}/v1/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${LITELLM_MASTER_KEY}`,
-      },
-      body: JSON.stringify({ model, messages, stream: true }),
-    });
-  } catch (err) {
-    state.lastError = `LiteLLM unreachable: ${err.message}`;
-    return sendJSON(res, 502, {
-      error: "Could not reach the LiteLLM proxy. Is it running? (launchd/start-litellm.sh)",
-      detail: err.message,
-    });
-  }
-
-  if (!upstream.ok || !upstream.body) {
-    const detail = await upstream.text().catch(() => "");
-    state.lastError = `LiteLLM responded ${upstream.status}`;
-    return sendJSON(res, upstream.status || 502, {
-      error: "LiteLLM error",
-      detail: detail.slice(0, 2000),
-    });
-  }
-
-  state.lastError = null;
   res.writeHead(200, {
     "Content-Type": "text/event-stream; charset=utf-8",
     "Cache-Control": "no-cache",
     Connection: "keep-alive",
-    "X-Nexora-Model": model,
-    "X-Nexora-Tier": tier,
+    "X-Nexora-Model": used.model,
+    "X-Nexora-Tier": used.tier,
+    "X-Nexora-Provider": used.name,
   });
 
   const reader = upstream.body.getReader();
@@ -547,6 +703,34 @@ async function handleWeatherWidget(req, res) {
 }
 
 // ---------------------------------------------------------------------------
+// Free AI providers status widget
+// ---------------------------------------------------------------------------
+function handleProvidersWidget(req, res) {
+  sendJSON(res, 200, {
+    providers: FREE_PROVIDERS.map((p) => ({
+      id: p.id,
+      name: p.name,
+      configured: !!process.env[p.envKey],
+      envKey: p.envKey,
+      tier: p.tier,
+      specialty: p.specialty,
+      freeLimit: p.freeLimit,
+      getKey: p.getKey,
+    })),
+    litellm: {
+      id: "litellm",
+      name: "Claude Sonnet (via LiteLLM)",
+      configured: true,
+      envKey: "LITELLM_MASTER_KEY",
+      tier: "pro",
+      specialty: "🧩 Raisonnement complexe · code · stratégie",
+      freeLimit: "Selon abonnement Anthropic — console.anthropic.com",
+      getKey: "https://console.anthropic.com/settings/keys",
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Router
 // ---------------------------------------------------------------------------
 const server = http.createServer(async (req, res) => {
@@ -558,6 +742,9 @@ const server = http.createServer(async (req, res) => {
     }
     if (url.pathname === "/api/router/status") {
       return sendJSON(res, 200, state);
+    }
+    if (url.pathname === "/api/router/providers") {
+      return handleProvidersWidget(req, res);
     }
     if (url.pathname === "/api/chat" && req.method === "POST") {
       return await handleChat(req, res);

@@ -105,15 +105,24 @@
       <div class="page-title">Communications</div>
       <button class="refresh-btn" id="refreshInbox">↺</button>
     </div>
-    <div class="sh">Plateformes connectées</div>
-    <div id="inboxPlatforms"></div>
+
+    <!-- Direct-launch messaging pads -->
+    <div class="sh">Messagerie — Accès direct</div>
+    <div id="inboxLaunchPads"></div>
+
+    <!-- Social networks -->
+    <div class="sh">Réseaux sociaux</div>
+    <div id="inboxSocials"></div>
+
+    <!-- Approval workflow -->
     <div class="sh">Workflow d'approbation</div>
     <div id="inboxApprovalSettings"></div>
-    <div class="sh">Messages en attente d'approbation</div>
+
+    <div class="sh">Messages en attente</div>
     <div id="inboxPending">
       <div class="empty-state">
         <div class="empty-icon">✉️</div>
-        <div class="empty-txt">Aucun message en attente.<br>Connectez Telegram ou WhatsApp pour activer le workflow.</div>
+        <div class="empty-txt">Aucun message en attente.<br>Configurez vos comptes dans Mémoire → Liens comptes.</div>
       </div>
     </div>
   </div>
@@ -314,9 +323,12 @@
       <div class="stat-row"><span class="label">Widgets mis à jour</span><span class="value">Finance, NS, Équipe</span></div>
     </div>
     <div class="card">
-      <div class="card-head"><span class="card-title">Auto-escalade IA</span><span class="badge b-ok">Actif</span></div>
-      <div class="stat-row"><span class="label">Seuil Pro</span><span class="value">&gt;800 car. ou mot-clé Pro</span></div>
-      <div class="stat-row"><span class="label">Niveau gratuit</span><span class="value">Groq / Gemini Flash / Ollama</span></div>
+      <div class="card-head"><span class="card-title">Routeur IA — Cascade</span><span class="badge b-ok">Actif</span></div>
+      <div class="stat-row"><span class="label">Simple / rapide</span><span class="value">Groq LLaMA 3.3 (priorité)</span></div>
+      <div class="stat-row"><span class="label">Complexe / analyse</span><span class="value">Gemini Flash → OpenRouter</span></div>
+      <div class="stat-row"><span class="label">Fallback</span><span class="value">Mistral → Together → LiteLLM</span></div>
+      <div class="stat-row"><span class="label">Pro (explicite)</span><span class="value">Claude via LiteLLM</span></div>
+      <div class="stat-row"><span class="label">Seuil auto-escalade</span><span class="value">&gt;800 car. ou mot-clé stratégique</span></div>
     </div>
   </div>
 
@@ -325,6 +337,7 @@
     <div class="page-toolbar">
       <div class="page-title">Mémoire &amp; Paramètres</div>
     </div>
+
     <div class="sh">Thème</div>
     <div class="card">
       <div class="brow">
@@ -332,6 +345,7 @@
         <button class="btn btn-g btn-sm" id="themeDark">🌙 Sombre</button>
       </div>
     </div>
+
     <div class="sh">Langues actives</div>
     <div class="card">
       <div id="langPicker">
@@ -342,7 +356,15 @@
         <span class="lang-pill active" data-lang="ru">🇷🇺 Russe</span>
       </div>
     </div>
-    <div class="sh">Tokens API</div>
+
+    <!-- ─ Free AI providers guide ─ -->
+    <div class="sh">Fournisseurs IA Gratuits</div>
+    <div class="card" id="aiProvidersCard">
+      <span class="loading-txt">Chargement…</span>
+    </div>
+
+    <!-- ─ Tokens (server env vars + local tokens) ─ -->
+    <div class="sh">Tokens locaux (NS · Telegram · LiteLLM)</div>
     <div class="card">
       <div class="token-row">
         <div class="token-label">NS API Key (Ocp-Apim-Subscription-Key)</div>
@@ -366,13 +388,69 @@
         </div>
       </div>
     </div>
+
+    <!-- ─ Communications account links ─ -->
+    <div class="sh">Liens Comptes — Communications</div>
+    <div class="card" id="accountLinksCard">
+      <!-- Telegram ×2 -->
+      <div class="acct-group-lbl">✈️ Telegram</div>
+      <div class="token-row">
+        <div class="token-label">Compte 1 — URL ou t.me/…</div>
+        <div class="token-input-wrap">
+          <input type="url" id="tkTgram1" placeholder="https://web.telegram.org" autocomplete="off">
+          <button class="token-save" data-key="tgram1_url">Sauver</button>
+        </div>
+      </div>
+      <div class="token-row">
+        <div class="token-label">Compte 2 — URL ou t.me/…</div>
+        <div class="token-input-wrap">
+          <input type="url" id="tkTgram2" placeholder="https://web.telegram.org" autocomplete="off">
+          <button class="token-save" data-key="tgram2_url">Sauver</button>
+        </div>
+      </div>
+      <!-- WhatsApp ×2 -->
+      <div class="acct-group-lbl" style="margin-top:10px">📱 WhatsApp</div>
+      <div class="token-row">
+        <div class="token-label">Compte 1 — URL</div>
+        <div class="token-input-wrap">
+          <input type="url" id="tkWa1" placeholder="https://web.whatsapp.com" autocomplete="off">
+          <button class="token-save" data-key="wa1_url">Sauver</button>
+        </div>
+      </div>
+      <div class="token-row">
+        <div class="token-label">Compte 2 — URL</div>
+        <div class="token-input-wrap">
+          <input type="url" id="tkWa2" placeholder="https://web.whatsapp.com" autocomplete="off">
+          <button class="token-save" data-key="wa2_url">Sauver</button>
+        </div>
+      </div>
+      <!-- Instagram ×2 -->
+      <div class="acct-group-lbl" style="margin-top:10px">📸 Instagram</div>
+      <div class="token-row">
+        <div class="token-label">Compte 1 — URL ou instagram.com/…</div>
+        <div class="token-input-wrap">
+          <input type="url" id="tkInsta1" placeholder="https://www.instagram.com" autocomplete="off">
+          <button class="token-save" data-key="insta1_url">Sauver</button>
+        </div>
+      </div>
+      <div class="token-row">
+        <div class="token-label">Compte 2 — URL ou instagram.com/…</div>
+        <div class="token-input-wrap">
+          <input type="url" id="tkInsta2" placeholder="https://www.instagram.com" autocomplete="off">
+          <button class="token-save" data-key="insta2_url">Sauver</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─ Profile ─ -->
     <div class="sh">Profil</div>
     <div class="card">
       <div class="stat-row"><span class="label">Nom</span><span class="value">Halim Belkacem</span></div>
-      <div class="stat-row"><span class="label">Localisation</span><span class="value">Arnhem, NL (Sint Janskerkstraat 94a)</span></div>
+      <div class="stat-row"><span class="label">Localisation</span><span class="value">Arnhem, NL</span></div>
       <div class="stat-row"><span class="label">Trajet quotidien</span><span class="value">Arnhem → Utrecht Central (Zara)</span></div>
       <div class="stat-row"><span class="label">Projets actifs</span><span class="value">NEXORA, ForgCV, Inditex/ZARA</span></div>
     </div>
+
     <div class="sh">Données locales</div>
     <div class="card">
       <div class="brow">

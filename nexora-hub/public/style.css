@@ -537,6 +537,60 @@ body.light .zara-sec-btn.active { color: #000; }
 .empty-icon  { font-size: 36px; margin-bottom: 10px; }
 .empty-txt   { font-size: 13px; line-height: 1.5; }
 
+/* ── AI PROVIDERS (Settings page) ── */
+.provider-row {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
+  padding: 11px 0; border-bottom: 1px solid var(--hair);
+}
+.provider-row:last-child { border-bottom: none; }
+.provider-info { flex: 1; min-width: 0; }
+.provider-name { font-size: 13px; font-weight: 800; color: var(--txt); margin-bottom: 3px; }
+.provider-meta { font-size: 10.5px; color: var(--txt3); line-height: 1.4; }
+.provider-actions {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex-shrink: 0;
+}
+.provider-link {
+  font-size: 10.5px; color: var(--ios); text-decoration: none; white-space: nowrap;
+}
+.provider-link:hover { text-decoration: underline; }
+.provider-env {
+  font-size: 9px; color: var(--txt3); font-family: 'SF Mono', monospace;
+  background: var(--bg3); border: 1px solid var(--cb); border-radius: 5px;
+  padding: 2px 6px; white-space: nowrap;
+}
+
+/* ── LAUNCH PAD (Communications page) ── */
+.launchpad-card {
+  background: var(--card); border: 1px solid var(--cb); border-radius: var(--r);
+  padding: 13px; margin-bottom: 11px;
+}
+.launchpad-head {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 14px; font-weight: 800; color: var(--txt); margin-bottom: 10px;
+}
+.launchpad-head-icon { font-size: 20px; }
+.launchpad-slots { display: flex; flex-direction: column; gap: 7px; }
+.launchpad-slot {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  background: var(--bg3); border: 1px solid var(--hair); border-radius: var(--rs);
+  padding: 9px 11px;
+}
+.launchpad-label { font-size: 12.5px; font-weight: 700; color: var(--txt); flex: 1; }
+.launchpad-url { font-size: 10px; color: var(--txt3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px; }
+.launchpad-btn {
+  background: var(--ios); border: none; color: #fff;
+  border-radius: 8px; padding: 7px 13px;
+  font-size: 12px; font-weight: 800; cursor: pointer;
+  transition: var(--tr); font-family: inherit; white-space: nowrap; flex-shrink: 0;
+}
+.launchpad-btn:active { transform: scale(.95); opacity: .85; }
+
+/* ── ACCOUNT GROUP LABEL (Settings) ── */
+.acct-group-lbl {
+  font-size: 11px; font-weight: 800; color: var(--txt2);
+  letter-spacing: .3px; margin-bottom: 6px; margin-top: 2px;
+}
+
 /* ── TOAST ── */
 .toast {
   position: fixed;
